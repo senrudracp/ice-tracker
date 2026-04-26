@@ -1,0 +1,10 @@
+{
+  "files": {
+    "main.js": "/ice-tracker/static/js/main.884947aa.js",
+    "index.html": "/ice-tracker/index.html",
+    "main.884947aa.js.map": "/ice-tracker/static/js/main.884947aa.js.map"
+  },
+  "entrypoints": [
+    "static/js/main.884947aa.js"
+  ]
+}
