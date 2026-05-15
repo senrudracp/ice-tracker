@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ICE 3.0 — Dev Command Centre</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+:root{
+  --navy:#0f1b2d;--navy2:#1a2d45;--navy3:#1e3a56;
+  --accent:#2e7de9;--accent2:#1a5bbf;
+  --green:#16a34a;--amber:#d97706;--red:#dc2626;--purple:#7c3aed;
+  --surface:#111827;--surface2:#1f2937;--surface3:#374151;
+  --border:#2d3748;--border2:#4a5568;
+  --text:#f1f5f9;--text2:#94a3b8;--text3:#64748b;
+  --done:#16a34a;--inprog:#2e7de9;--blocked:#dc2626;--atrisk:#d97706;--notstart:#64748b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--surface);color:var(--text);font-size:13px;min-height:100vh}
+
+/* ── Top Nav ───────────────────────────────────────────────── */
+.nav{background:var(--navy);border-bottom:1px solid var(--border);padding:0 20px;height:48px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+.nav-logo{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#fff;letter-spacing:-.2px}
+.nav-logo-badge{background:var(--accent);color:#fff;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.nav-divider{width:1px;height:20px;background:var(--border2);margin:0 4px}
+.nav-title{font-size:12px;color:var(--text2);font-weight:400}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.nav-search{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 10px 5px 28px;font-size:12px;color:var(--text);width:220px;position:relative}
+.nav-search-wrap{position:relative}
+.nav-search-wrap i{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none}
+.nav-search:focus{outline:none;border-color:var(--accent)}
+.nav-btn{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 12px;font-size:12px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:5px;transition:.15s}
+.nav-btn:hover{background:var(--surface3);color:var(--text)}
+.nav-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.nav-btn.primary:hover{background:var(--accent2)}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--amber);margin-right:2px}
+.sync-dot.ok{background:var(--green)}
+.sync-dot.err{background:var(--red)}
+
+/* ── Stat bar ──────────────────────────────────────────────── */
+.stat-bar{background:var(--navy2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:0}
+.stat-item{padding:4px 20px;border-right:1px solid var(--border);text-align:center;min-width:80px}
+.stat-item:first-child{padding-left:0}
+.stat-item:last-child{border-right:none}
+.stat-n{font-size:22px;font-weight:700;line-height:1}
+.stat-l{font-size:10px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+.stat-n.green{color:var(--green)}
+.stat-n.amber{color:var(--amber)}
+.stat-n.red{color:var(--red)}
+.stat-n.blue{color:var(--accent)}
+.stat-n.purple{color:var(--purple)}
+.progress-wrap{flex:1;padding:0 24px}
+.progress-bar{height:6px;border-radius:3px;background:var(--surface3);overflow:hidden;margin-bottom:5px}
+.progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--green));transition:.4s}
+.progress-legend{display:flex;gap:14px;font-size:10px;color:var(--text3)}
+.leg-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:3px;vertical-align:middle}
+.filter-strip{flex:1;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.fchip{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text2);transition:.12s;white-space:nowrap}
+.fchip:hover{border-color:var(--accent);color:var(--accent)}
+.fchip.on{color:#fff;border-color:transparent}
+.fchip.be.on{background:#1e3a56;border-color:var(--accent);color:var(--accent)}
+.fchip.fe.on{background:#0f2e1f;border-color:var(--green);color:#4ade80}
+.fchip.int.on{background:#2a1a5e;border-color:var(--purple);color:#a78bfa}
+.fchip.done.on{background:#0f2e1f;border-color:var(--green);color:#4ade80}
+.fchip.inprog.on{background:#1e3a56;border-color:var(--accent);color:var(--accent)}
+.fchip.blocked.on{background:#2e1111;border-color:var(--red);color:#f87171}
+.fchip.notstart.on{background:var(--surface3);border-color:var(--border2);color:var(--text2)}
+.sel-dark{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-size:11px;color:var(--text);cursor:pointer}
+.sel-dark:focus{outline:none;border-color:var(--accent)}
+
+/* ── Tab bar ───────────────────────────────────────────────── */
+.tab-bar{background:var(--navy2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;gap:0}
+.tab{padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text3);border-bottom:2px solid transparent;display:flex;align-items:center;gap:5px;transition:.15s;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab.active{color:#fff;border-bottom-color:var(--accent)}
+.tab-n{background:var(--surface3);border-radius:10px;padding:1px 6px;font-size:10px;font-weight:600;color:var(--text2)}
+.tab.active .tab-n{background:var(--accent);color:#fff}
+
+/* ── Panes ─────────────────────────────────────────────────── */
+.pane{display:none}
+.pane.active{display:block}
+
+/* ── Table ─────────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:1100px}
+thead{position:sticky;top:48px;z-index:5}
+thead tr{background:var(--navy2)}
+th{padding:10px 12px;text-align:left;font-weight:500;color:var(--text3);font-size:10px;border-bottom:1px solid var(--border);white-space:nowrap;text-transform:uppercase;letter-spacing:.4px;cursor:pointer;user-select:none}
+th:hover{color:var(--text)}
+th .sort-icon{opacity:.3;margin-left:3px}
+th.sorted .sort-icon{opacity:1}
+td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+tr:hover td{background:rgba(46,125,233,.04)}
+tr.highlight td{background:rgba(46,125,233,.08)}
+.fr-tag{font-family:monospace;font-size:10px;font-weight:700;color:var(--accent);background:rgba(46,125,233,.12);padding:2px 7px;border-radius:4px}
+.fr-name{font-size:10px;color:var(--text3);margin-top:2px}
+.task-id{font-family:monospace;font-size:11px;font-weight:700;color:#fff}
+.t-be{background:rgba(46,125,233,.15);color:#60a5fa;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600}
+.t-fe{background:rgba(22,163,74,.15);color:#4ade80;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600}
+.t-int{background:rgba(124,58,237,.15);color:#a78bfa;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600}
+.file-name{font-family:monospace;font-size:10px;font-weight:600}
+.file-pkg{font-size:10px;color:var(--text3)}
+.est{background:var(--surface2);color:var(--text2);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:500;font-family:monospace}
+.read-chip{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:3px 8px;border-radius:20px;font-weight:500}
+.rc-can{background:rgba(22,163,74,.15);color:#4ade80}
+.rc-dep{background:rgba(217,119,6,.15);color:#fbbf24}
+.rc-needs{background:rgba(220,38,38,.15);color:#f87171}
+
+/* Status select */
+.ss{border:1px solid var(--border);border-radius:6px;font-size:11px;padding:4px 7px;background:var(--surface2);color:var(--text);cursor:pointer;width:100%;transition:.15s}
+.ss:focus{outline:none;border-color:var(--accent)}
+.ss.DONE{background:rgba(22,163,74,.15);color:#4ade80;border-color:rgba(22,163,74,.4)}
+.ss.IN-PROGRESS{background:rgba(46,125,233,.15);color:#60a5fa;border-color:rgba(46,125,233,.4)}
+.ss.BLOCKED{background:rgba(220,38,38,.15);color:#f87171;border-color:rgba(220,38,38,.4)}
+.ss.AT-RISK{background:rgba(217,119,6,.15);color:#fbbf24;border-color:rgba(217,119,6,.4)}
+.ss.NOT-STARTED{background:var(--surface2);color:var(--text2)}
+
+/* Dev select */
+.ds{border:1px solid var(--border);border-radius:6px;font-size:11px;padding:4px 7px;background:var(--surface2);color:var(--text);cursor:pointer;max-width:140px}
+.ds:focus{outline:none;border-color:var(--accent)}
+.av{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0}
+
+/* Pager */
+.pager{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--border);background:var(--navy2)}
+.pg-btn{padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);cursor:pointer;font-size:12px;color:var(--text2);transition:.15s}
+.pg-btn:hover:not(:disabled){background:var(--surface3);color:var(--text)}
+.pg-btn:disabled{opacity:.3;cursor:default}
+
+/* Team tab */
+.team-grid{display:grid;grid-template-columns:320px 1fr;gap:0;min-height:400px}
+.team-sidebar{border-right:1px solid var(--border);padding:16px}
+.team-main{padding:16px}
+.user-list{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.user-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--surface2);transition:.1s}
+.user-row:last-child{border-bottom:none}
+.user-row:hover{background:var(--surface3)}
+.u-role{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600}
+.r-BE{background:rgba(46,125,233,.2);color:#60a5fa}
+.r-FE{background:rgba(22,163,74,.2);color:#4ade80}
+.r-QA{background:rgba(124,58,237,.2);color:#a78bfa}
+.r-LEAD{background:rgba(217,119,6,.2);color:#fbbf24}
+.del-btn{margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;padding:4px 6px;border-radius:6px;transition:.1s}
+.del-btn:hover{background:rgba(220,38,38,.15);color:#f87171}
+.add-dev-btn{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1px dashed var(--border2);background:transparent;color:var(--accent);font-size:12px;font-weight:500;cursor:pointer;width:100%;justify-content:center;transition:.15s}
+.add-dev-btn:hover{background:rgba(46,125,233,.1);border-color:var(--accent)}
+.alloc-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+.load-bar{height:6px;border-radius:3px;background:var(--surface3);overflow:hidden;flex:1}
+.load-fill{height:100%;border-radius:3px;transition:.3s}
+.fr-chip{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-family:monospace;background:var(--surface3);color:var(--text2);margin:2px}
+.sec-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+
+/* Deps tab */
+.dep-card{border-radius:8px;padding:10px 12px;margin-bottom:7px;border-left:3px solid}
+.dc-can{background:rgba(22,163,74,.08);border-color:var(--green)}
+.dc-dep{background:rgba(217,119,6,.08);border-color:var(--amber)}
+.dc-needs{background:rgba(220,38,38,.08);border-color:var(--red)}
+
+/* Sprint board */
+.sprint-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;padding:16px}
+.sprint-lane{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface2)}
+.lane-hdr{padding:10px 13px;font-size:11px;font-weight:600;background:var(--navy2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.lane-count{background:var(--surface3);border-radius:10px;padding:1px 7px;font-size:10px;font-weight:600;color:var(--text2);margin-left:auto}
+.lane-body{padding:10px;min-height:120px;max-height:60vh;overflow-y:auto}
+.kcard{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:7px;cursor:pointer;transition:.15s}
+.kcard:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.kcard-fr{font-size:10px;font-family:monospace;color:var(--accent);font-weight:700}
+.kcard-task{font-weight:600;margin:3px 0;font-size:11px;line-height:1.35;color:#fff}
+.kcard-file{font-size:10px;font-family:monospace;color:#4ade80;margin-bottom:5px}
+.kcard-footer{display:flex;align-items:center;gap:5px}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--navy2);border-radius:14px;padding:24px 28px;width:400px;border:1px solid var(--border2);box-shadow:0 25px 60px rgba(0,0,0,.5)}
+.modal-title{font-size:15px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px;color:#fff}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:500;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.field input,.field select{width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);transition:.15s}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(46,125,233,.15)}
+.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+.btn{padding:8px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border2);transition:.15s;display:flex;align-items:center;gap:5px}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:var(--accent2)}
+.btn-ghost{background:transparent;color:var(--text2)}
+.btn-ghost:hover{background:var(--surface3)}
+.colour-grid{display:flex;gap:7px;flex-wrap:wrap}
+.cswatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:.1s}
+.cswatch.picked{border-color:#fff;transform:scale(1.1)}
+
+/* Notes textarea */
+.notes-ta{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:11px;color:var(--text);resize:none;min-height:52px;font-family:inherit}
+.notes-ta:focus{outline:none;border-color:var(--accent)}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;right:20px;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:500;z-index:9999;display:none;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.toast.show{display:flex;animation:slideIn .2s ease}
+.toast.ok{background:#0f2e1f;border:1px solid var(--green);color:#4ade80}
+.toast.err{background:#2e1111;border:1px solid var(--red);color:#f87171}
+@keyframes slideIn{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* Loading */
+.loading{display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);flex-direction:column;gap:10px}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{padding:40px;text-align:center;color:var(--text3)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">
+    <span class="nav-logo-badge">ICE</span>
+    3.0
+  </div>
+  <div class="nav-divider"></div>
+  <span class="nav-title">Dev Command Centre</span>
+  <div class="nav-right">
+    <div class="nav-search-wrap">
+      <i class="ti ti-search"></i>
+      <input class="nav-search" id="nav-search" placeholder="Search FR, task, developer..." oninput="globalSearch()">
+    </div>
+    <button class="nav-btn" onclick="showTab('team',document.querySelector('[data-tab=team]'))">
+      <i class="ti ti-users"></i> Team
+    </button>
+    <button class="nav-btn primary" onclick="refreshAll()">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-label">Not synced</span>
+    </button>
+  </div>
+</nav>
+
+<!-- STAT BAR -->
+<div class="stat-bar">
+  <div class="stat-item"><div class="stat-n blue" id="s-total">—</div><div class="stat-l">Tasks</div></div>
+  <div class="stat-item"><div class="stat-n green" id="s-done-pct">0%</div><div class="stat-l">Complete</div></div>
+  <div class="stat-item"><div class="stat-n green" id="s-done">0</div><div class="stat-l">Done</div></div>
+  <div class="stat-item"><div class="stat-n blue" id="s-inprog">0</div><div class="stat-l">In Progress</div></div>
+  <div class="stat-item"><div class="stat-n red" id="s-blocked">0</div><div class="stat-l">Blocked</div></div>
+  <div class="stat-item"><div class="stat-n amber" id="s-atrisk">0</div><div class="stat-l">At Risk</div></div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="progress-legend">
+      <span><span class="leg-dot" style="background:var(--green)"></span>Done <span id="leg-done">0%</span></span>
+      <span><span class="leg-dot" style="background:var(--accent)"></span>In Progress <span id="leg-inprog">0%</span></span>
+      <span><span class="leg-dot" style="background:var(--red)"></span>Blocked <span id="leg-blocked">0%</span></span>
+      <span><span class="leg-dot" style="background:var(--text3)"></span>Not Started <span id="leg-ns">0%</span></span>
+    </div>
+  </div>
+  <div class="filter-strip">
+    <select class="sel-dark" id="f-sprint" onchange="filterReg()">
+      <option value="">All sprints</option>
+    </select>
+    <select class="sel-dark" id="f-fr" onchange="filterReg()">
+      <option value="">All FRs</option>
+    </select>
+    <button class="fchip be" id="fc-be" onclick="toggleF('be')">BE</button>
+    <button class="fchip fe" id="fc-fe" onclick="toggleF('fe')">FE</button>
+    <button class="fchip int" id="fc-int" onclick="toggleF('int')">INT</button>
+    <button class="fchip done" id="fc-done" onclick="toggleF('done')">Done</button>
+    <button class="fchip inprog" id="fc-inprog" onclick="toggleF('inprog')">In Progress</button>
+    <button class="fchip blocked" id="fc-blocked" onclick="toggleF('blocked')">Blocked</button>
+    <button class="fchip notstart" id="fc-notstart" onclick="toggleF('notstart')">Not Started</button>
+  </div>
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab active" data-tab="register" onclick="showTab('register',this)"><i class="ti ti-layout-list"></i> Task Register <span class="tab-n" id="tn-reg">—</span></button>
+  <button class="tab" data-tab="team" onclick="showTab('team',this)"><i class="ti ti-users"></i> Team <span class="tab-n" id="tn-team">—</span></button>
+  <button class="tab" data-tab="deps" onclick="showTab('deps',this)"><i class="ti ti-git-branch"></i> Dependencies</button>
+  <button class="tab" data-tab="sprint" onclick="showTab('sprint',this)"><i class="ti ti-columns"></i> Sprint Board</button>
+  <button class="tab" data-tab="history" onclick="showTab('history',this)"><i class="ti ti-history"></i> Audit Log</button>
+</div>
+
+<!-- REGISTER PANE -->
+<div id="pane-register" class="pane active">
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th onclick="sortBy('fr')">FR <span class="sort-icon">↕</span></th>
+        <th onclick="sortBy('task_id')">Task <span class="sort-icon">↕</span></th>
+        <th>Type</th>
+        <th onclick="sortBy('description')">Description <span class="sort-icon">↕</span></th>
+        <th>File to update</th>
+        <th>Module</th>
+        <th onclick="sortBy('est_days')">Est <span class="sort-icon">↕</span></th>
+        <th>Readiness</th>
+        <th style="min-width:130px">Status</th>
+        <th style="min-width:160px">Assigned to</th>
+        <th>Notes</th>
+      </tr></thead>
+      <tbody id="reg-body">
+        <tr><td colspan="11"><div class="loading"><div class="spinner"></div>Loading from Supabase...</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="pager">
+    <button class="pg-btn" id="pg-prev" onclick="changePage(-1)">‹ Prev</button>
+    <span id="pg-info" style="color:var(--text3);font-size:12px"></span>
+    <button class="pg-btn" id="pg-next" onclick="changePage(1)">Next ›</button>
+    <span style="margin-left:auto;font-size:12px;color:var(--text3)">Showing <strong id="pg-showing" style="color:var(--text)"></strong> of <strong id="pg-total" style="color:var(--text)"></strong></span>
+  </div>
+</div>
+
+<!-- TEAM PANE -->
+<div id="pane-team" class="pane">
+  <div class="team-grid">
+    <div class="team-sidebar">
+      <div class="sec-title">Developers</div>
+      <div class="user-list" id="user-list"><div class="loading"><div class="spinner"></div></div></div>
+      <button class="add-dev-btn" onclick="openModal()"><i class="ti ti-plus"></i> Add developer</button>
+    </div>
+    <div class="team-main">
+      <div class="sec-title">Workload breakdown</div>
+      <div id="alloc-cards"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DEPS PANE -->
+<div id="pane-deps" class="pane">
+  <div style="padding:14px 16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <select class="sel-dark" id="dep-fr" onchange="renderDeps()">
+        <option value="">Select FR...</option>
+      </select>
+      <span style="font-size:11px;color:var(--text3)">🟢 Ready &nbsp;·&nbsp; 🟡 Intra-FR dep &nbsp;·&nbsp; 🔴 Needs another FR</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" id="dep-body"></div>
+  </div>
+</div>
+
+<!-- SPRINT PANE -->
+<div id="pane-sprint" class="pane">
+  <div style="padding:10px 16px 0;display:flex;align-items:center;gap:10px">
+    <select class="sel-dark" id="sprint-fr" onchange="renderSprint()">
+      <option value="">Select FR...</option>
+    </select>
+  </div>
+  <div class="sprint-col" id="sprint-body"></div>
+</div>
+
+<!-- HISTORY PANE -->
+<div id="pane-history" class="pane">
+  <div style="padding:16px">
+    <div class="sec-title">Status change audit log</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>When</th><th>Task</th><th>FR</th><th>From</th><th>To</th><th>By</th>
+        </tr></thead>
+        <tbody id="history-body">
+          <tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading...</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ADD DEV MODAL -->
+<div class="modal-bg" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title"><i class="ti ti-user-plus"></i> Add developer</div>
+    <div class="field"><label>Full name</label><input id="u-name" placeholder="e.g. Priya Sharma"></div>
+    <div class="field"><label>ID / handle</label><input id="u-id" placeholder="e.g. B6" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+    <div class="field"><label>Role</label>
+      <select id="u-role">
+        <option value="BE">Backend developer</option>
+        <option value="FE">Frontend developer</option>
+        <option value="QA">QA engineer</option>
+        <option value="LEAD">Tech lead</option>
+      </select>
+    </div>
+    <div class="field"><label>Avatar colour</label>
+      <div class="colour-grid" id="colour-grid"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="addDeveloper()"><i class="ti ti-check"></i> Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Supabase init ───────────────────────────────────────────
+const SB_URL  = 'https://ticbyxjscunrqkclkddg.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpY2J5eGpzY3VucnFrY2xrZGRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxOTUzNTcsImV4cCI6MjA5Mjc3MTM1N30.21-2SxDKWIFadbtm18xttEwfOL5OQa21aj8dThiVV4M';
+const sb      = supabase.createClient(SB_URL, SB_KEY);
+
+// ── State ───────────────────────────────────────────────────
+let tasks=[], assignments={}, developers=[], sprints=[], history=[];
+let filteredRows=[], page=0;
+const PAGE=15;
+let sortCol='fr', sortDir=1;
+let filt={be:false,fe:false,int:false,done:false,inprog:false,blocked:false,notstart:false};
+let pickedColor='#2e7de9';
+const COLOURS=['#2e7de9','#16a34a','#7c3aed','#d97706','#dc2626','#1D9E75','#993C1D','#444441','#0369a1','#db2777'];
+
+// ── Supabase helpers ────────────────────────────────────────
+async function fetchAll(){
+  setSyncState('loading');
+  try{
+    const [t,a,d,s,h]=await Promise.all([
+      sb.from('tasks').select('*').order('fr').order('task_id'),
+      sb.from('task_assignments').select('*'),
+      sb.from('developers').select('*').order('id'),
+      sb.from('sprints').select('*').order('id'),
+      sb.from('status_history').select('*').order('changed_at',{ascending:false}).limit(100)
+    ]);
+    if(t.error||a.error||d.error)throw t.error||a.error||d.error;
+    tasks=t.data||[]; developers=d.data||[]; sprints=s.data||[]; history=h.data||[];
+    assignments={};
+    (a.data||[]).forEach(r=>assignments[r.task_id]=r);
+    setSyncState('ok');
+    populateFilters();
+    filterReg();
+    updateStats();
+    if(document.getElementById('pane-team').classList.contains('active')) renderTeam();
+    document.getElementById('tn-team').textContent=developers.length;
+  }catch(e){setSyncState('err');showToast('Error loading data: '+e.message,'err');}
+}
+
+async function updateAssignment(taskId, field, value){
+  const existing=assignments[taskId];
+  if(existing){
+    const old=existing.status;
+    const upd={[field]:value,updated_at:new Date().toISOString()};
+    const {error}=await sb.from('task_assignments').update(upd).eq('task_id',taskId);
+    if(error){showToast('Save failed: '+error.message,'err');return;}
+    assignments[taskId]={...existing,...upd};
+    if(field==='status'&&old!==value){
+      await sb.from('status_history').insert({task_id:taskId,old_status:old,new_status:value,changed_by:'user'});
+    }
+  }else{
+    const row={task_id:taskId,[field]:value,updated_at:new Date().toISOString()};
+    const {data,error}=await sb.from('task_assignments').insert(row).select().single();
+    if(error){showToast('Save failed: '+error.message,'err');return;}
+    assignments[taskId]=data;
+  }
+  updateStats();
+  showToast('Saved ✓','ok');
+}
+
+async function addDeveloper(){
+  const name=document.getElementById('u-name').value.trim();
+  const id=document.getElementById('u-id').value.trim().toUpperCase();
+  const role=document.getElementById('u-role').value;
+  if(!name||!id){showToast('Name and ID required','err');return;}
+  if(developers.find(d=>d.id===id)){showToast('ID already exists','err');return;}
+  const {data,error}=await sb.from('developers').insert({id,name,role,color:pickedColor}).select().single();
+  if(error){showToast('Error: '+error.message,'err');return;}
+  developers.push(data);
+  closeModal();
+  document.getElementById('u-name').value='';
+  document.getElementById('u-id').value='';
+  renderTeam();
+  filterReg();
+  showToast('Developer added ✓','ok');
+}
+
+async function removeDeveloper(id){
+  if(!confirm('Remove '+id+'?'))return;
+  const {error}=await sb.from('developers').delete().eq('id',id);
+  if(error){showToast('Error: '+error.message,'err');return;}
+  developers=developers.filter(d=>d.id!==id);
+  renderTeam();filterReg();
+  showToast('Developer removed','ok');
+}
+
+// ── UI helpers ──────────────────────────────────────────────
+function setSyncState(s){
+  const dot=document.getElementById('sync-dot');
+  const lbl=document.getElementById('sync-label');
+  dot.className='sync-dot'+(s==='ok'?' ok':s==='err'?' err':'');
+  lbl.textContent=s==='ok'?'Synced':s==='err'?'Error':'Syncing...';
+}
+
+function showToast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+(type||'ok');
+  setTimeout(()=>t.className='toast',2500);
+}
+
+function showTab(id,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pane-'+id).classList.add('active');
+  if(id==='team')renderTeam();
+  if(id==='deps')renderDeps();
+  if(id==='sprint')renderSprint();
+  if(id==='history')renderHistory();
+}
+
+function populateFilters(){
+  const frs=[...new Set(tasks.map(t=>t.fr))].sort();
+  document.getElementById('f-fr').innerHTML='<option value="">All FRs</option>'+frs.map(f=>`<option>${f}</option>`).join('');
+  document.getElementById('dep-fr').innerHTML='<option value="">Select FR...</option>'+frs.map(f=>`<option>${f}</option>`).join('');
+  document.getElementById('sprint-fr').innerHTML='<option value="">Select FR...</option>'+frs.map(f=>`<option>${f}</option>`).join('');
+  document.getElementById('f-sprint').innerHTML='<option value="">All sprints</option>'+sprints.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+function toggleF(k){filt[k]=!filt[k];document.getElementById('fc-'+k).classList.toggle('on',filt[k]);page=0;filterReg();}
+
+function globalSearch(){
+  document.getElementById('reg-search-placeholder')?.remove();
+  page=0;filterReg();
+}
+
+function filterReg(){
+  const q=(document.getElementById('nav-search').value||'').toLowerCase();
+  const frF=document.getElementById('f-fr').value;
+  const spF=document.getElementById('f-sprint').value;
+  const anyT=filt.be||filt.fe||filt.int;
+  const anySt=filt.done||filt.inprog||filt.blocked||filt.notstart;
+
+  filteredRows=tasks.filter(t=>{
+    if(frF&&t.fr!==frF)return false;
+    const a=assignments[t.id]||{};
+    if(spF&&String(a.sprint_id)!==spF)return false;
+    if(anyT){
+      const m=(filt.be&&t.type==='BE')||(filt.fe&&t.type==='FE')||(filt.int&&t.type==='INT');
+      if(!m)return false;
+    }
+    if(anySt){
+      const st=(a.status||'NOT STARTED');
+      const m=(filt.done&&st==='DONE')||(filt.inprog&&st==='IN PROGRESS')||(filt.blocked&&st==='BLOCKED')||(filt.notstart&&st==='NOT STARTED');
+      if(!m)return false;
+    }
+    if(q){
+      const haystack=[t.fr,t.task_id,t.description,t.file_name,t.module,(assignments[t.id]?.developer_id||'')].join(' ').toLowerCase();
+      if(!haystack.includes(q))return false;
+    }
+    return true;
+  });
+
+  filteredRows.sort((a,b)=>{
+    let va=a[sortCol]||'', vb=b[sortCol]||'';
+    if(sortCol==='est_days'){va=Number(va);vb=Number(vb);}
+    return sortDir*(va<vb?-1:va>vb?1:0);
+  });
+
+  document.getElementById('tn-reg').textContent=filteredRows.length;
+  renderPage();
+}
+
+function sortBy(col){
+  if(sortCol===col)sortDir*=-1; else{sortCol=col;sortDir=1;}
+  document.querySelectorAll('th').forEach(th=>{th.classList.remove('sorted');if(th.onclick&&th.onclick.toString().includes(`'${col}'`))th.classList.add('sorted');});
+  filterReg();
+}
+
+function changePage(d){page+=d;renderPage();}
+
+function getDevColor(id){return (developers.find(d=>d.id===id)||{}).color||'#444';}
+function getDevName(id){const d=developers.find(x=>x.id===id);return d?d.name+' ('+d.id+')':'';}
+
+function renderPage(){
+  const total=filteredRows.length;
+  const pages=Math.max(1,Math.ceil(total/PAGE));
+  if(page>=pages)page=pages-1;
+  if(page<0)page=0;
+  const slice=filteredRows.slice(page*PAGE,(page+1)*PAGE);
+  document.getElementById('pg-info').textContent=`Page ${page+1} of ${pages}`;
+  document.getElementById('pg-showing').textContent=slice.length;
+  document.getElementById('pg-total').textContent=total;
+  document.getElementById('pg-prev').disabled=page===0;
+  document.getElementById('pg-next').disabled=page>=pages-1;
+
+  const devOpts='<option value="">— unassigned —</option>'+developers.map(d=>`<option value="${d.id}">${d.name} (${d.id})</option>`).join('');
+  const tbody=document.getElementById('reg-body');
+  if(!slice.length){tbody.innerHTML=`<tr><td colspan="11"><div class="empty-state"><i class="ti ti-search" style="font-size:32px;display:block;margin-bottom:8px"></i>No tasks match</div></td></tr>`;return;}
+
+  tbody.innerHTML=slice.map(t=>{
+    const a=assignments[t.id]||{};
+    const st=a.status||'NOT STARTED';
+    const stKey=st.replace(/ /g,'-');
+    const devId=a.developer_id||'';
+    const devColor=getDevColor(devId);
+    const tc=t.type==='BE'?'t-be':t.type==='FE'?'t-fe':'t-int';
+    const rc=t.readiness==='can_start'?'rc-can':t.readiness==='dep_on'?'rc-dep':'rc-needs';
+    const rl=t.readiness==='can_start'?'✓ Ready':t.readiness==='dep_on'?'~ Queued':'✗ Blocked';
+    const isAng=t.pkg_path&&t.pkg_path.includes('features');
+    const fc=isAng?'#a78bfa':t.type==='FE'?'#4ade80':'#60a5fa';
+    const dOpts=devOpts.replace(`value="${devId}"`,`value="${devId}" selected`);
+    return`<tr>
+      <td><div class="fr-tag">${t.fr}</div><div class="fr-name">${t.fr_name||''}</div></td>
+      <td><span class="task-id">${t.task_id}</span></td>
+      <td><span class="${tc}">${t.type}</span></td>
+      <td style="max-width:220px;line-height:1.45">${t.description}</td>
+      <td>
+        <div class="file-name" style="color:${fc}">${t.file_name||'—'}</div>
+        <div class="file-pkg">${t.module||''}</div>
+        <div class="file-pkg">${t.pkg_path||''}</div>
+      </td>
+      <td><span class="est">${t.est_days}d</span></td>
+      <td><span class="read-chip ${rc}">${rl}</span></td>
+      <td>
+        <select class="ss ${stKey}" onchange="updateAssignment('${t.id}','status',this.value);this.className='ss '+this.value.replace(/ /g,'-')">
+          <option${st==='NOT STARTED'?' selected':''}>NOT STARTED</option>
+          <option${st==='IN PROGRESS'?' selected':''}>IN PROGRESS</option>
+          <option${st==='DONE'?' selected':''}>DONE</option>
+          <option${st==='BLOCKED'?' selected':''}>BLOCKED</option>
+          <option${st==='AT RISK'?' selected':''}>AT RISK</option>
+        </select>
+      </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="av" style="background:${devColor};width:22px;height:22px;font-size:9px">${devId||'?'}</div>
+          <select class="ds" onchange="updateAssignment('${t.id}','developer_id',this.value)">${dOpts}</select>
+        </div>
+      </td>
+      <td><textarea class="notes-ta" rows="2" placeholder="Add note..." onblur="updateAssignment('${t.id}','notes',this.value)">${a.notes||''}</textarea></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateStats(){
+  const all=tasks;
+  const total=all.length;
+  const done=all.filter(t=>(assignments[t.id]?.status||'NOT STARTED')==='DONE').length;
+  const inprog=all.filter(t=>(assignments[t.id]?.status||'NOT STARTED')==='IN PROGRESS').length;
+  const blocked=all.filter(t=>(assignments[t.id]?.status||'NOT STARTED')==='BLOCKED').length;
+  const atrisk=all.filter(t=>(assignments[t.id]?.status||'NOT STARTED')==='AT RISK').length;
+  const ns=all.filter(t=>(assignments[t.id]?.status||'NOT STARTED')==='NOT STARTED').length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('s-total').textContent=total;
+  document.getElementById('s-done-pct').textContent=pct+'%';
+  document.getElementById('s-done').textContent=done;
+  document.getElementById('s-inprog').textContent=inprog;
+  document.getElementById('s-blocked').textContent=blocked;
+  document.getElementById('s-atrisk').textContent=atrisk;
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('leg-done').textContent=pct+'%';
+  document.getElementById('leg-inprog').textContent=total?Math.round(inprog/total*100)+'%':'0%';
+  document.getElementById('leg-blocked').textContent=total?Math.round(blocked/total*100)+'%':'0%';
+  document.getElementById('leg-ns').textContent=total?Math.round(ns/total*100)+'%':'0%';
+}
+
+// ── Team tab ────────────────────────────────────────────────
+function renderTeam(){
+  document.getElementById('tn-team').textContent=developers.length;
+  document.getElementById('user-list').innerHTML=developers.length?developers.map(d=>`
+    <div class="user-row">
+      <div class="av" style="background:${d.color};width:34px;height:34px;font-size:12px">${d.id}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:#fff">${d.name}</div><div style="font-size:11px;color:var(--text3)">${d.id}</div></div>
+      <span class="u-role r-${d.role}">${d.role}</span>
+      <button class="del-btn" onclick="removeDeveloper('${d.id}')" title="Remove"><i class="ti ti-trash"></i></button>
+    </div>`).join(''):'<div style="padding:16px;text-align:center;color:var(--text3)">No developers yet</div>';
+
+  const max=Math.max(1,...developers.map(d=>tasks.filter(t=>(assignments[t.id]?.developer_id||'')=== d.id).length));
+  document.getElementById('alloc-cards').innerHTML=developers.map(d=>{
+    const assigned=tasks.filter(t=>(assignments[t.id]?.developer_id||'')=== d.id);
+    const done=assigned.filter(t=>(assignments[t.id]?.status||'')==='DONE').length;
+    const pct=Math.round(assigned.length/max*100);
+    const est=assigned.reduce((s,t)=>s+(t.est_days||0),0).toFixed(1);
+    const frs=[...new Set(assigned.map(t=>t.fr))];
+    return`<div class="alloc-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div class="av" style="background:${d.color};width:36px;height:36px;font-size:13px">${d.id}</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:#fff">${d.name}</div>
+          <div style="font-size:11px;color:var(--text3)">${assigned.length} tasks · ~${est} days · ${done} done</div></div>
+        <span style="font-size:20px;font-weight:700;color:${d.color}">${Math.round(assigned.length?done/assigned.length*100:0)}%</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div class="load-bar"><div class="load-fill" style="width:${pct}%;background:${d.color}"></div></div>
+        <span style="font-size:11px;color:var(--text3);min-width:34px">${pct}%</span>
+      </div>
+      ${frs.length?`<div>${frs.map(f=>`<span class="fr-chip">${f}</span>`).join('')}</div>`:'<div style="font-size:11px;color:var(--text3)">No tasks assigned</div>'}
+    </div>`;
+  }).join('');
+}
+
+// ── Deps tab ─────────────────────────────────────────────────
+function renderDeps(){
+  const fr=document.getElementById('dep-fr').value;
+  if(!fr){document.getElementById('dep-body').innerHTML='<div style="color:var(--text3);grid-column:span 2;padding:20px">Select an FR above</div>';return;}
+  const ts=tasks.filter(t=>t.fr===fr);
+  const be=ts.filter(t=>t.type==='BE');
+  const fe=ts.filter(t=>t.type!=='BE');
+  function card(t){
+    const cls=t.readiness==='can_start'?'dc-can':t.readiness==='dep_on'?'dc-dep':'dc-needs';
+    const lbl=t.readiness==='can_start'?'🟢 Ready now':t.readiness==='dep_on'?'🟡 Intra-FR dep':'🔴 Needs another FR';
+    return`<div class="dep-card ${cls}">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+        <span style="font-family:monospace;font-size:11px;font-weight:700;color:#fff">${t.task_id}</span>
+        <span class="${t.type==='BE'?'t-be':t.type==='FE'?'t-fe':'t-int'}">${t.type}</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--text3)">${lbl}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.4">${t.description}</div>
+      ${t.file_name?`<div style="font-size:10px;font-family:monospace;color:#4ade80;margin-top:4px">${t.file_name}</div>`:''}
+    </div>`;
+  }
+  document.getElementById('dep-body').innerHTML=`
+    <div><div class="sec-title">Backend (${be.length})</div>${be.map(card).join('')||'<div style="color:var(--text3);font-size:12px">None</div>'}</div>
+    <div><div class="sec-title">Frontend + INT (${fe.length})</div>${fe.map(card).join('')||'<div style="color:var(--text3);font-size:12px">None</div>'}</div>`;
+}
+
+// ── Sprint board ─────────────────────────────────────────────
+function renderSprint(){
+  const fr=document.getElementById('sprint-fr').value;
+  const ts=fr?tasks.filter(t=>t.fr===fr):tasks;
+  const blocked=ts.filter(t=>t.readiness==='needs_fr');
+  const ready=ts.filter(t=>t.readiness==='can_start');
+  const queued=ts.filter(t=>t.readiness==='dep_on');
+  function kc(t){
+    const a=assignments[t.id]||{};
+    const dv=developers.find(d=>d.id===a.developer_id);
+    const st=a.status||'NOT STARTED';
+    const stColor=st==='DONE'?'var(--green)':st==='IN PROGRESS'?'var(--accent)':st==='BLOCKED'?'var(--red)':'var(--text3)';
+    return`<div class="kcard">
+      <div class="kcard-fr">${t.fr} · ${t.task_id}</div>
+      <div class="kcard-task">${t.description}</div>
+      ${t.file_name?`<div class="kcard-file">${t.file_name}</div>`:''}
+      <div class="kcard-footer">
+        ${dv?`<div class="av" style="background:${dv.color};width:18px;height:18px;font-size:8px">${dv.id}</div><span style="font-size:10px;color:var(--text3)">${dv.name}</span>`:'<span style="font-size:10px;color:var(--text3);font-style:italic">Unassigned</span>'}
+        <span style="margin-left:auto;font-size:10px;color:${stColor};font-weight:600">${st}</span>
+        <span style="font-size:10px;background:var(--surface3);padding:1px 5px;border-radius:3px;color:var(--text3)">${t.est_days}d</span>
+      </div>
+    </div>`;
+  }
+  document.getElementById('sprint-body').innerHTML=`
+    <div class="sprint-lane">
+      <div class="lane-hdr" style="border-top:3px solid var(--red)">🔴 Blocked <span class="lane-count">${blocked.length}</span></div>
+      <div class="lane-body">${blocked.map(kc).join('')||'<div style="font-size:11px;color:var(--text3);padding:6px">None</div>'}</div>
+    </div>
+    <div class="sprint-lane">
+      <div class="lane-hdr" style="border-top:3px solid var(--green)">🟢 Ready <span class="lane-count">${ready.length}</span></div>
+      <div class="lane-body">${ready.map(kc).join('')}</div>
+    </div>
+    <div class="sprint-lane">
+      <div class="lane-hdr" style="border-top:3px solid var(--amber)">🟡 Queued <span class="lane-count">${queued.length}</span></div>
+      <div class="lane-body">${queued.map(kc).join('')}</div>
+    </div>`;
+}
+
+// ── History tab ──────────────────────────────────────────────
+async function renderHistory(){
+  const {data,error}=await sb.from('status_history').select('*').order('changed_at',{ascending:false}).limit(200);
+  if(error){document.getElementById('history-body').innerHTML=`<tr><td colspan="6" style="color:var(--red);padding:16px">Error loading history</td></tr>`;return;}
+  if(!data.length){document.getElementById('history-body').innerHTML=`<tr><td colspan="6"><div class="empty-state">No history yet — start updating task statuses</div></td></tr>`;return;}
+  const stColor=s=>s==='DONE'?'var(--green)':s==='IN PROGRESS'?'var(--accent)':s==='BLOCKED'?'var(--red)':'var(--text3)';
+  document.getElementById('history-body').innerHTML=data.map(h=>`
+    <tr>
+      <td style="color:var(--text3);font-size:11px">${new Date(h.changed_at).toLocaleString()}</td>
+      <td style="font-family:monospace;font-size:11px;font-weight:700">${h.task_id}</td>
+      <td><span class="fr-tag">${h.task_id?.split(':')?.[0]||''}</span></td>
+      <td><span style="color:${stColor(h.old_status)};font-size:11px">${h.old_status||'—'}</span></td>
+      <td><span style="color:${stColor(h.new_status)};font-weight:600;font-size:11px">${h.new_status||'—'}</span></td>
+      <td style="font-size:11px;color:var(--text3)">${h.changed_by||'user'}</td>
+    </tr>`).join('');
+}
+
+// ── Modal ────────────────────────────────────────────────────
+document.getElementById('colour-grid').innerHTML=COLOURS.map((c,i)=>
+  `<div class="cswatch${i===0?' picked':''}" style="background:${c}" onclick="pickColour(this,'${c}')"></div>`
+).join('');
+function pickColour(el,c){pickedColor=c;document.querySelectorAll('.cswatch').forEach(s=>s.classList.remove('picked'));el.classList.add('picked');}
+function openModal(){document.getElementById('modal').classList.add('open');}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+
+async function refreshAll(){await fetchAll();}
+
+// ── Boot ─────────────────────────────────────────────────────
+fetchAll();
+</script>
+</body>
+</html>

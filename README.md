@@ -1,100 +1,67 @@
-# ICE 3.0 — Sprint Tracker
+# ICE 3.0 — Dev Command Centre
 
-Live dashboard for ICE 3.0 sprint tracking. Internal use — Changepond Technologies.
+Enterprise sprint tracker for the ICE 3.0 platform — persisted to Supabase, hosted on GitHub Pages.
 
-**Live URL:** https://senrudracp.github.io/ice-tracker
+**Live:** https://senrudracp.github.io/ice-tracker/
 
 ---
 
-## Setup (one-time, ~15 minutes)
+## One-time setup (5 minutes)
 
 ### Step 1 — Supabase schema
+1. Go to your Supabase project → **SQL Editor**
+2. Paste the entire contents of `schema.sql`
+3. Click **Run**
 
-1. Go to https://supabase.com → sign in → open project `tracker`
-2. Click **SQL Editor** → **New Query**
-3. Paste the contents of `scripts/schema.sql`
-4. Click **Run**
+That creates all tables, indexes, RLS policies, and seeds the default developers + tasks.
 
-### Step 2 — Initial data import
+### Step 2 — GitHub Pages
+1. Go to your repo → **Settings → Pages**
+2. Source: **GitHub Actions**
+3. Save
 
-Run the sync script to import all 595 tasks from Excel:
-
+### Step 3 — Push
 ```bash
-# Install dependency
-pip install openpyxl
-
-# Run sync (from this folder)
-python scripts/sync.py path/to/ICE_Plan_v18.xlsx
-```
-
-### Step 3 — Push to GitHub
-
-```bash
-git init
-git remote add origin https://github.com/senrudracp/ice-tracker.git
+git clone https://github.com/senrudracp/ice-tracker
+cd ice-tracker
+# copy index.html, schema.sql, .github/ into the repo
 git add .
-git commit -m "Initial ICE 3.0 Sprint Tracker"
-git push -u origin main
+git commit -m "feat: ICE Dev Command Centre v1"
+git push origin main
 ```
 
-GitHub Actions will auto-build and deploy to GitHub Pages in ~2 minutes.
-
-### Step 4 — Enable GitHub Pages
-
-1. Go to https://github.com/senrudracp/ice-tracker → **Settings**
-2. Click **Pages** in the left sidebar
-3. Under **Source** → select **gh-pages** branch → click **Save**
-
-Your app is live at: **https://senrudracp.github.io/ice-tracker**
+GitHub Actions deploys automatically. Live in ~60 seconds.
 
 ---
 
-## Daily usage
+## Features
 
-### Updating task status
-1. Open https://senrudracp.github.io/ice-tracker
-2. Password: `Welcometoice@123`
-3. Click **Edit** on any task row
-4. Update status, assignee, actual dates → **Save**
-5. Stakeholders see it instantly
-
-### Adding team members
-1. Click **👥 Team** in the top bar
-2. Type developer name + role → **Add**
-3. They appear in all Assignee dropdowns immediately
-
-### Syncing plan changes from Excel
-When you add tasks or change estimates in ICE_Plan_v18.xlsx:
-
-```bash
-python scripts/sync.py ICE_Plan_v18.xlsx
-```
-
-- New tasks are inserted
-- Existing task details/estimates are updated
-- Status, assignee, actual dates are **never touched** by sync
-
----
-
-## Architecture
-
-```
-ICE_Plan_v18.xlsx  →  sync.py  →  Supabase DB
-                                        ↓
-                          React App (GitHub Pages)
-                                        ↓
-                           Stakeholders (read-only view)
-                           You (edit status, assignees)
-```
-
----
-
-## Files
-
-| File | Purpose |
+| Feature | Detail |
 |---|---|
-| `src/App.js` | Full React dashboard |
-| `src/supabase.js` | Supabase client config |
-| `scripts/schema.sql` | Run once in Supabase SQL Editor |
-| `scripts/sync.py` | Run after any Excel changes |
-| `.github/workflows/deploy.yml` | Auto-deploy on git push |
+| **Task Register** | All tasks with status + assigned dev, editable inline |
+| **Persistence** | Every change saved to Supabase in real time |
+| **Audit log** | Every status change recorded in `status_history` |
+| **Team management** | Add/remove developers, workload breakdown |
+| **Dependencies** | Per-FR readiness view (Ready / Queued / Blocked) |
+| **Sprint board** | Kanban lanes per FR |
+| **Global search** | Search across FR, task, file, developer |
+| **Filters** | By type (BE/FE/INT), status, FR, sprint |
+
+---
+
+## Adding all 60 FRs
+
+The schema seeds FR-022, FR-028, and FR-043 as a preview.
+To add remaining FRs: append INSERT rows to the `tasks` section of `schema.sql` and re-run in Supabase SQL Editor.
+
+---
+
+## Database schema
+
+```
+developers       — id, name, role, color
+sprints          — id, name, start_date, end_date, status
+tasks            — id (FR:task), fr, task_id, type, description, file_name, module, pkg_path, est_days, readiness
+task_assignments — task_id, developer_id, status, sprint_id, notes, updated_at
+status_history   — task_id, old_status, new_status, changed_by, changed_at
+```
