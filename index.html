@@ -196,7 +196,7 @@ tr.highlight td{background:rgba(46,125,233,.08)}
 .dc-needs{background:rgba(220,38,38,.08);border-color:var(--red)}
 
 /* Sprint board */
-.sprint-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;padding:16px}
+.sprint-col{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:12px}
 .sprint-lane{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface2)}
 .lane-hdr{padding:10px 13px;font-size:11px;font-weight:600;background:var(--navy2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
 .lane-count{background:var(--surface3);border-radius:10px;padding:1px 7px;font-size:10px;font-weight:600;color:var(--text2);margin-left:auto}
@@ -420,12 +420,24 @@ tr.highlight td{background:rgba(46,125,233,.08)}
 
 <!-- SPRINT PANE -->
 <div id="pane-sprint" class="pane">
-  <div style="padding:10px 16px 0;display:flex;align-items:center;gap:10px">
-    <select class="sel-dark" id="sprint-fr" onchange="renderSprint()">
-      <option value="">Select FR...</option>
+  <div style="padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-wrap:wrap">
+    <select class="sel-dark" id="sprint-sel" onchange="renderSprint()" style="min-width:220px">
+      <option value="">Select sprint...</option>
     </select>
+    <select class="sel-dark" id="sprint-fr-filter" onchange="renderSprint()">
+      <option value="">All FRs</option>
+    </select>
+    <select class="sel-dark" id="sprint-type-filter" onchange="renderSprint()">
+      <option value="">All types</option>
+      <option value="BE">BE</option>
+      <option value="FE">FE</option>
+      <option value="INT">INT</option>
+    </select>
+    <div id="sprint-stats" style="margin-left:auto;font-size:11px;color:var(--text3);display:flex;gap:14px"></div>
   </div>
-  <div class="sprint-col" id="sprint-body"></div>
+  <div class="sprint-col" id="sprint-body">
+    <div style="padding:40px;text-align:center;color:var(--text3);grid-column:span 3">Select a sprint to view the kanban board</div>
+  </div>
 </div>
 
 <!-- HISTORY PANE -->
@@ -642,10 +654,17 @@ function showTab(id,el){
 
 function populateFilters(){
   const frs=[...new Set(tasks.map(t=>t.fr))].sort();
-  document.getElementById('f-fr').innerHTML='<option value="">All FRs</option>'+frs.map(f=>`<option>${f}</option>`).join('');
+  const frOpts='<option value="">All FRs</option>'+frs.map(f=>`<option>${f}</option>`).join('');
+  document.getElementById('f-fr').innerHTML=frOpts;
   document.getElementById('dep-fr').innerHTML='<option value="">Select FR...</option>'+frs.map(f=>`<option>${f}</option>`).join('');
-  document.getElementById('sprint-fr').innerHTML='<option value="">Select FR...</option>'+frs.map(f=>`<option>${f}</option>`).join('');
-  document.getElementById('f-sprint').innerHTML='<option value="">All sprints</option>'+sprints.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  document.getElementById('sprint-fr-filter').innerHTML=frOpts;
+
+  // Sprint selectors — from sprints array
+  const sprintOpts='<option value="">Select sprint...</option>'+
+    sprints.map(s=>`<option value="${s.id}">${s.name.replace(/^\d+\|/,'')}</option>`).join('');
+  document.getElementById('sprint-sel').innerHTML=sprintOpts;
+  document.getElementById('f-sprint').innerHTML='<option value="">All sprints</option>'+
+    sprints.map(s=>`<option value="${s.id}">${s.name.replace(/^\d+\|/,'')}</option>`).join('');
 }
 
 function toggleF(k){filt[k]=!filt[k];document.getElementById('fc-'+k).classList.toggle('on',filt[k]);page=0;filterReg();}
@@ -662,10 +681,21 @@ function filterReg(){
   const anyT=filt.be||filt.fe||filt.int;
   const anySt=filt.done||filt.inprog||filt.blocked||filt.notstart;
 
+  // Resolve sprint filter: spF is the sprint DB id, tasks store sprint_no (1,2,3...)
+  // Extract sprint number from the sprint name e.g. "Sprint 5 — MVP" → 5
+  let sprintNoFilter = null;
+  if(spF){
+    const sp = sprints.find(s=>String(s.id)===String(spF));
+    if(sp){
+      const m = sp.name.match(/Sprint\s+(\d+)/i);
+      if(m) sprintNoFilter = parseInt(m[1]);
+    }
+  }
+
   filteredRows=tasks.filter(t=>{
     if(frF&&t.fr!==frF)return false;
+    if(sprintNoFilter!==null&&t.sprint_no!==sprintNoFilter)return false;
     const a=assignments[t.id]||{};
-    if(spF&&String(a.sprint_id)!==spF)return false;
     if(anyT){
       const m=(filt.be&&t.type==='BE')||(filt.fe&&t.type==='FE')||(filt.int&&t.type==='INT');
       if(!m)return false;
@@ -690,6 +720,7 @@ function filterReg(){
 
   document.getElementById('tn-reg').textContent=filteredRows.length;
   renderPage();
+  updateStats();
 }
 
 function sortBy(col){
@@ -761,13 +792,13 @@ function renderPage(){
 }
 
 function updateStats(){
-  const all=tasks;
-  const total=all.length;
-  const done=all.filter(t=>(assignments[t.id]?.status||'NOT STARTED')==='DONE').length;
-  const inprog=all.filter(t=>(assignments[t.id]?.status||'NOT STARTED')==='IN PROGRESS').length;
-  const blocked=all.filter(t=>(assignments[t.id]?.status||'NOT STARTED')==='BLOCKED').length;
-  const atrisk=all.filter(t=>(assignments[t.id]?.status||'NOT STARTED')==='AT RISK').length;
-  const ns=all.filter(t=>(assignments[t.id]?.status||'NOT STARTED')==='NOT STARTED').length;
+  const rows=filteredRows.length?filteredRows:tasks;
+  const total=rows.length;
+  const done=rows.filter(t=>(assignments[t.id]?.status||'NOT STARTED')==='DONE').length;
+  const inprog=rows.filter(t=>(assignments[t.id]?.status||'NOT STARTED')==='IN PROGRESS').length;
+  const blocked=rows.filter(t=>(assignments[t.id]?.status||'NOT STARTED')==='BLOCKED').length;
+  const atrisk=rows.filter(t=>(assignments[t.id]?.status||'NOT STARTED')==='AT RISK').length;
+  const ns=rows.filter(t=>(assignments[t.id]?.status||'NOT STARTED')==='NOT STARTED').length;
   const pct=total?Math.round(done/total*100):0;
   document.getElementById('s-total').textContent=total;
   document.getElementById('s-done-pct').textContent=pct+'%';
@@ -841,42 +872,79 @@ function renderDeps(){
     <div><div class="sec-title">Frontend + INT (${fe.length})</div>${fe.map(card).join('')||'<div style="color:var(--text3);font-size:12px">None</div>'}</div>`;
 }
 
-// ── Sprint board ─────────────────────────────────────────────
+// ── Sprint board (status-based kanban) ──────────────────────
 function renderSprint(){
-  const fr=document.getElementById('sprint-fr').value;
-  const ts=fr?tasks.filter(t=>t.fr===fr):tasks;
-  const blocked=ts.filter(t=>t.readiness==='needs_fr');
-  const ready=ts.filter(t=>t.readiness==='can_start');
-  const queued=ts.filter(t=>t.readiness==='dep_on');
+  const spId=document.getElementById('sprint-sel').value;
+  const frF=document.getElementById('sprint-fr-filter').value;
+  const typeF=document.getElementById('sprint-type-filter').value;
+  const body=document.getElementById('sprint-body');
+  if(!spId){
+    body.innerHTML='<div style="padding:40px;text-align:center;color:var(--text3);grid-column:span 5">Select a sprint above to view the board</div>';
+    return;
+  }
+  const sprint=sprints.find(s=>String(s.id)===String(spId));
+  const spName=sprint?sprint.name.replace(/^\d+\|/,''):'Sprint';
+  // Extract sprint number from name e.g. "Sprint 7 — MVP"
+  const spNumMatch=spName.match(/Sprint\s+(\d+)/i);
+  const spNum=spNumMatch?parseInt(spNumMatch[1]):null;
+  let ts=spNum!==null?tasks.filter(t=>t.sprint_no===spNum):tasks;
+  if(frF) ts=ts.filter(t=>t.fr===frF);
+  if(typeF) ts=ts.filter(t=>t.type===typeF);
+  const lanes=[
+    {key:'NOT STARTED',label:'📋 To Do',    color:'var(--text3)', tasks:[]},
+    {key:'IN PROGRESS', label:'🔵 In Progress',color:'var(--accent)',tasks:[]},
+    {key:'BLOCKED',     label:'🔴 Blocked',   color:'var(--red)',   tasks:[]},
+    {key:'AT RISK',     label:'🟡 At Risk',   color:'var(--amber)', tasks:[]},
+    {key:'DONE',        label:'✅ Done',      color:'var(--green)', tasks:[]},
+  ];
+  ts.forEach(t=>{
+    const st=(assignments[t.id]?.status)||'NOT STARTED';
+    (lanes.find(l=>l.key===st)||lanes[0]).tasks.push(t);
+  });
+  const total=ts.length, done=lanes[4].tasks.length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('sprint-stats').innerHTML=
+    `<span><strong style="color:var(--text)">${total}</strong> tasks</span>
+     <span><strong style="color:var(--green)">${done}</strong> done</span>
+     <span><strong style="color:var(--accent)">${lanes[1].tasks.length}</strong> in progress</span>
+     <span><strong style="color:var(--red)">${lanes[2].tasks.length}</strong> blocked</span>
+     <span style="font-weight:600;color:${pct>50?'var(--green)':'var(--accent)'}">${pct}%</span>`;
   function kc(t){
     const a=assignments[t.id]||{};
     const dv=developers.find(d=>d.id===a.developer_id);
-    const st=a.status||'NOT STARTED';
-    const stColor=st==='DONE'?'var(--green)':st==='IN PROGRESS'?'var(--accent)':st==='BLOCKED'?'var(--red)':'var(--text3)';
-    return`<div class="kcard">
-      <div class="kcard-fr">${t.fr} · ${t.task_id}</div>
-      <div class="kcard-task" style="color:var(--text)">${t.description}</div>
-      ${t.file_name?`<div class="kcard-file">${t.file_name}</div>`:''}
+    const tc=t.type==='BE'?'t-be':t.type==='FE'?'t-fe':'t-int';
+    return`<div class="kcard" onclick="highlightTask('${t.id}')">
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+        <span class="fr-tag" style="font-size:9px">${t.fr}</span>
+        <span class="${tc}" style="font-size:9px">${t.type}</span>
+        <span style="font-family:monospace;font-size:10px;font-weight:700;color:var(--text2);margin-left:auto">${t.task_id}</span>
+      </div>
+      <div style="font-size:11px;line-height:1.35;color:var(--text);margin-bottom:6px">${t.description}</div>
       <div class="kcard-footer">
-        ${dv?`<div class="av" style="background:${dv.color};width:18px;height:18px;font-size:8px">${dv.id}</div><span style="font-size:10px;color:var(--text3)">${dv.name}</span>`:'<span style="font-size:10px;color:var(--text3);font-style:italic">Unassigned</span>'}
-        <span style="margin-left:auto;font-size:10px;color:${stColor};font-weight:600">${st}</span>
-        <span style="font-size:10px;background:var(--surface3);padding:1px 5px;border-radius:3px;color:var(--text3)">${t.est_days}d</span>
+        ${dv?`<div class="av" style="background:${dv.color};width:18px;height:18px;font-size:8px">${dv.id}</div>
+               <span style="font-size:10px;color:var(--text3)">${dv.name}</span>`
+            :'<span style="font-size:10px;color:var(--text3);font-style:italic">Unassigned</span>'}
+        <span style="margin-left:auto;font-size:10px;background:var(--surface3);padding:1px 5px;border-radius:3px;color:var(--text3)">${t.est_days}d</span>
       </div>
     </div>`;
   }
-  document.getElementById('sprint-body').innerHTML=`
+  body.innerHTML=lanes.map(l=>`
     <div class="sprint-lane">
-      <div class="lane-hdr" style="border-top:3px solid var(--red)">🔴 Blocked <span class="lane-count">${blocked.length}</span></div>
-      <div class="lane-body">${blocked.map(kc).join('')||'<div style="font-size:11px;color:var(--text3);padding:6px">None</div>'}</div>
-    </div>
-    <div class="sprint-lane">
-      <div class="lane-hdr" style="border-top:3px solid var(--green)">🟢 Ready <span class="lane-count">${ready.length}</span></div>
-      <div class="lane-body">${ready.map(kc).join('')}</div>
-    </div>
-    <div class="sprint-lane">
-      <div class="lane-hdr" style="border-top:3px solid var(--amber)">🟡 Queued <span class="lane-count">${queued.length}</span></div>
-      <div class="lane-body">${queued.map(kc).join('')}</div>
-    </div>`;
+      <div class="lane-hdr" style="border-top:3px solid ${l.color}">${l.label}<span class="lane-count">${l.tasks.length}</span></div>
+      <div class="lane-body">${l.tasks.length?l.tasks.map(kc).join('')
+        :'<div style="font-size:11px;color:var(--text3);padding:8px;text-align:center">Empty</div>'}
+      </div>
+    </div>`).join('');
+}
+
+function highlightTask(id){
+  showTab('register',document.querySelector('[data-tab=register]'));
+  setTimeout(()=>{
+    document.querySelectorAll('#reg-body tr').forEach(r=>{
+      r.classList.remove('highlight');
+      if(r.innerHTML.includes(id)) r.classList.add('highlight');
+    });
+  },300);
 }
 
 // ── History tab ──────────────────────────────────────────────
