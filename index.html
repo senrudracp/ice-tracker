@@ -7,7 +7,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <style>
-:root{
+/* ── Dark theme (default) ──────────────────────────────────── */
+:root,[data-theme="dark"]{
   --navy:#0f1b2d;--navy2:#1a2d45;--navy3:#1e3a56;
   --accent:#2e7de9;--accent2:#1a5bbf;
   --green:#16a34a;--amber:#d97706;--red:#dc2626;--purple:#7c3aed;
@@ -15,13 +16,44 @@
   --border:#2d3748;--border2:#4a5568;
   --text:#f1f5f9;--text2:#94a3b8;--text3:#64748b;
   --done:#16a34a;--inprog:#2e7de9;--blocked:#dc2626;--atrisk:#d97706;--notstart:#64748b;
+  --file-be:#60a5fa;--file-fe:#4ade80;--file-ang:#a78bfa;
+  --modal-bg:rgba(0,0,0,.7);
+  --shadow:0 4px 24px rgba(0,0,0,.4);
+}
+
+/* ── Light theme ───────────────────────────────────────────── */
+[data-theme="light"]{
+  --navy:#ffffff;--navy2:#f8fafc;--navy3:#f1f5f9;
+  --accent:#2563eb;--accent2:#1d4ed8;
+  --green:#15803d;--amber:#b45309;--red:#b91c1c;--purple:#6d28d9;
+  --surface:#f8fafc;--surface2:#ffffff;--surface3:#f1f5f9;
+  --border:#e2e8f0;--border2:#cbd5e1;
+  --text:#0f172a;--text2:#475569;--text3:#94a3b8;
+  --done:#15803d;--inprog:#2563eb;--blocked:#b91c1c;--atrisk:#b45309;--notstart:#94a3b8;
+  --file-be:#1d4ed8;--file-fe:#15803d;--file-ang:#6d28d9;
+  --modal-bg:rgba(0,0,0,.4);
+  --shadow:0 4px 24px rgba(0,0,0,.12);
+}
+
+/* ── Warm theme (cream/beige — matches ICE 3.0 frontend) ───── */
+[data-theme="warm"]{
+  --navy:#f5f0e8;--navy2:#ede8df;--navy3:#e4ddd2;
+  --accent:#7c5cbf;--accent2:#6344a8;
+  --green:#2d7a2d;--amber:#a06010;--red:#b91c1c;--purple:#7c5cbf;
+  --surface:#f9f6f0;--surface2:#f5f0e8;--surface3:#ede8df;
+  --border:#d8d0c4;--border2:#c8bfb0;
+  --text:#1a1612;--text2:#5a5248;--text3:#9a9088;
+  --done:#2d7a2d;--inprog:#7c5cbf;--blocked:#b91c1c;--atrisk:#a06010;--notstart:#9a9088;
+  --file-be:#1d4ed8;--file-fe:#166534;--file-ang:#6d28d9;
+  --modal-bg:rgba(0,0,0,.3);
+  --shadow:0 4px 24px rgba(0,0,0,.1);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--surface);color:var(--text);font-size:13px;min-height:100vh}
 
 /* ── Top Nav ───────────────────────────────────────────────── */
 .nav{background:var(--navy);border-bottom:1px solid var(--border);padding:0 20px;height:48px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
-.nav-logo{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#fff;letter-spacing:-.2px}
+.nav-logo{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.2px}
 .nav-logo-badge{background:var(--accent);color:#fff;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;letter-spacing:.5px}
 .nav-divider{width:1px;height:20px;background:var(--border2);margin:0 4px}
 .nav-title{font-size:12px;color:var(--text2);font-weight:400}
@@ -204,6 +236,44 @@ tr.highlight td{background:rgba(46,125,233,.08)}
 .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty-state{padding:40px;text-align:center;color:var(--text3)}
+/* ── Light + Warm overrides ────────────────────────────────── */
+[data-theme="light"] .nav,
+[data-theme="warm"]  .nav{border-bottom:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.06)}
+[data-theme="light"] thead tr,
+[data-theme="warm"]  thead tr{background:var(--surface3)}
+[data-theme="light"] tr:hover td,
+[data-theme="warm"]  tr:hover td{background:rgba(0,0,0,.03)}
+[data-theme="light"] .kcard,
+[data-theme="warm"]  .kcard{box-shadow:0 1px 4px rgba(0,0,0,.06)}
+[data-theme="light"] .kcard:hover,
+[data-theme="warm"]  .kcard:hover{box-shadow:0 4px 12px rgba(0,0,0,.1);transform:translateY(-1px)}
+[data-theme="light"] .modal,
+[data-theme="warm"]  .modal{box-shadow:0 25px 60px rgba(0,0,0,.15)}
+[data-theme="warm"]  .nav-logo-badge{background:var(--accent);color:#fff}
+[data-theme="light"] .nav-logo-badge{background:var(--accent);color:#fff}
+[data-theme="light"] .stat-n.blue,
+[data-theme="warm"]  .stat-n.blue{color:var(--accent)}
+[data-theme="light"] .ss.IN-PROGRESS,
+[data-theme="warm"]  .ss.IN-PROGRESS{background:rgba(124,92,191,.1);color:var(--accent);border-color:rgba(124,92,191,.4)}
+[data-theme="warm"]  .fr-tag{background:rgba(124,92,191,.12);color:var(--accent)}
+[data-theme="warm"]  .t-be{background:rgba(29,78,216,.1);color:#1d4ed8}
+[data-theme="warm"]  .t-fe{background:rgba(22,101,52,.1);color:#166534}
+[data-theme="warm"]  .t-int{background:rgba(109,40,217,.1);color:#6d28d9}
+[data-theme="warm"]  .rc-can{background:rgba(45,122,45,.1);color:#2d7a2d}
+[data-theme="warm"]  .rc-dep{background:rgba(160,96,16,.1);color:#a06010}
+[data-theme="warm"]  .rc-needs{background:rgba(185,28,28,.1);color:#b91c1c}
+[data-theme="light"] .t-be{background:rgba(29,78,216,.08);color:#1d4ed8}
+[data-theme="light"] .t-fe{background:rgba(22,101,52,.08);color:#166534}
+[data-theme="light"] .t-int{background:rgba(109,40,217,.08);color:#6d28d9}
+
+/* ── Theme picker ──────────────────────────────────────────── */
+.theme-picker{position:relative}
+.theme-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--navy2);border:1px solid var(--border2);border-radius:10px;overflow:hidden;min-width:140px;box-shadow:var(--shadow);z-index:200}
+.theme-menu.open{display:block}
+.theme-opt{display:flex;align-items:center;gap:8px;width:100%;padding:9px 14px;font-size:12px;font-weight:500;background:transparent;border:none;color:var(--text2);cursor:pointer;transition:.12s;text-align:left}
+.theme-opt:hover{background:var(--surface3);color:var(--text)}
+.theme-opt.active{color:var(--accent);background:rgba(46,125,233,.1)}
+.theme-opt i{font-size:14px}
 </style>
 </head>
 <body>
@@ -224,6 +294,19 @@ tr.highlight td{background:rgba(46,125,233,.08)}
     <button class="nav-btn" onclick="showTab('team',document.querySelector('[data-tab=team]'))">
       <i class="ti ti-users"></i> Team
     </button>
+    <div class="theme-picker" id="theme-picker">
+      <button class="nav-btn" onclick="toggleThemeMenu()" id="theme-btn">
+        <i class="ti ti-palette" id="theme-icon"></i>
+        <span id="theme-label">Dark</span>
+        <i class="ti ti-chevron-down" style="font-size:10px;opacity:.6"></i>
+      </button>
+      <div class="theme-menu" id="theme-menu">
+        <button class="theme-opt" data-theme="dark"    onclick="setTheme('dark')"  ><i class="ti ti-moon"></i>     Dark</button>
+        <button class="theme-opt" data-theme="light"   onclick="setTheme('light')" ><i class="ti ti-sun"></i>      Light</button>
+        <button class="theme-opt" data-theme="warm"    onclick="setTheme('warm')"  ><i class="ti ti-flame"></i>    Warm</button>
+        <button class="theme-opt" data-theme="system"  onclick="setTheme('system')"><i class="ti ti-device-desktop"></i> System</button>
+      </div>
+    </div>
     <button class="nav-btn primary" onclick="refreshAll()">
       <div class="sync-dot" id="sync-dot"></div>
       <span id="sync-label">Not synced</span>
@@ -386,6 +469,47 @@ tr.highlight td{background:rgba(46,125,233,.08)}
 <div class="toast" id="toast"></div>
 
 <script>
+// ── Theme system ────────────────────────────────────────────
+const THEME_ICONS={dark:'ti-moon',light:'ti-sun',warm:'ti-flame',system:'ti-device-desktop'};
+const THEME_LABELS={dark:'Dark',light:'Light',warm:'Warm',system:'System'};
+
+function applyTheme(theme){
+  const resolved=theme==='system'?(window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'):theme;
+  document.documentElement.setAttribute('data-theme',resolved);
+}
+
+function setTheme(theme){
+  localStorage.setItem('ice-theme',theme);
+  applyTheme(theme);
+  document.getElementById('theme-icon').className='ti '+THEME_ICONS[theme];
+  document.getElementById('theme-label').textContent=THEME_LABELS[theme];
+  document.querySelectorAll('.theme-opt').forEach(b=>b.classList.toggle('active',b.dataset.theme===theme));
+  closeThemeMenu();
+}
+
+function toggleThemeMenu(){
+  document.getElementById('theme-menu').classList.toggle('open');
+}
+function closeThemeMenu(){
+  document.getElementById('theme-menu').classList.remove('open');
+}
+document.addEventListener('click',e=>{
+  if(!document.getElementById('theme-picker').contains(e.target)) closeThemeMenu();
+});
+
+// Apply saved theme on load
+(function(){
+  const saved=localStorage.getItem('ice-theme')||'dark';
+  applyTheme(saved);
+  document.getElementById('theme-icon').className='ti '+(THEME_ICONS[saved]||'ti-moon');
+  document.getElementById('theme-label').textContent=THEME_LABELS[saved]||'Dark';
+  document.querySelectorAll('.theme-opt').forEach(b=>b.classList.toggle('active',b.dataset.theme===saved));
+  // Watch system preference changes
+  window.matchMedia('(prefers-color-scheme:light)').addEventListener('change',()=>{
+    if(localStorage.getItem('ice-theme')==='system') applyTheme('system');
+  });
+})();
+
 // ── Supabase init ───────────────────────────────────────────
 const SB_URL  = 'https://ticbyxjscunrqkclkddg.supabase.co';
 const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpY2J5eGpzY3VucnFrY2xrZGRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxOTUzNTcsImV4cCI6MjA5Mjc3MTM1N30.21-2SxDKWIFadbtm18xttEwfOL5OQa21aj8dThiVV4M';
@@ -585,11 +709,11 @@ function renderPage(){
     const rc=t.readiness==='can_start'?'rc-can':t.readiness==='dep_on'?'rc-dep':'rc-needs';
     const rl=t.readiness==='can_start'?'✓ Ready':t.readiness==='dep_on'?'~ Queued':'✗ Blocked';
     const isAng=t.pkg_path&&t.pkg_path.includes('features');
-    const fc=isAng?'#a78bfa':t.type==='FE'?'#4ade80':'#60a5fa';
+    const fc=isAng?'var(--file-ang)':t.type==='FE'?'var(--file-fe)':'var(--file-be)';
     const dOpts=devOpts.replace(`value="${devId}"`,`value="${devId}" selected`);
     return`<tr>
       <td><div class="fr-tag">${t.fr}</div><div class="fr-name">${t.fr_name||''}</div></td>
-      <td><span class="task-id">${t.task_id}</span></td>
+      <td><span class="task-id" style="color:var(--text)">${t.task_id}</span></td>
       <td><span class="${tc}">${t.type}</span></td>
       <td style="max-width:220px;line-height:1.45">${t.description}</td>
       <td>
@@ -647,7 +771,7 @@ function renderTeam(){
   document.getElementById('user-list').innerHTML=developers.length?developers.map(d=>`
     <div class="user-row">
       <div class="av" style="background:${d.color};width:34px;height:34px;font-size:12px">${d.id}</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:#fff">${d.name}</div><div style="font-size:11px;color:var(--text3)">${d.id}</div></div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">${d.name}</div><div style="font-size:11px;color:var(--text3)">${d.id}</div></div>
       <span class="u-role r-${d.role}">${d.role}</span>
       <button class="del-btn" onclick="removeDeveloper('${d.id}')" title="Remove"><i class="ti ti-trash"></i></button>
     </div>`).join(''):'<div style="padding:16px;text-align:center;color:var(--text3)">No developers yet</div>';
@@ -662,7 +786,7 @@ function renderTeam(){
     return`<div class="alloc-card">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <div class="av" style="background:${d.color};width:36px;height:36px;font-size:13px">${d.id}</div>
-        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:#fff">${d.name}</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">${d.name}</div>
           <div style="font-size:11px;color:var(--text3)">${assigned.length} tasks · ~${est} days · ${done} done</div></div>
         <span style="font-size:20px;font-weight:700;color:${d.color}">${Math.round(assigned.length?done/assigned.length*100:0)}%</span>
       </div>
@@ -714,7 +838,7 @@ function renderSprint(){
     const stColor=st==='DONE'?'var(--green)':st==='IN PROGRESS'?'var(--accent)':st==='BLOCKED'?'var(--red)':'var(--text3)';
     return`<div class="kcard">
       <div class="kcard-fr">${t.fr} · ${t.task_id}</div>
-      <div class="kcard-task">${t.description}</div>
+      <div class="kcard-task" style="color:var(--text)">${t.description}</div>
       ${t.file_name?`<div class="kcard-file">${t.file_name}</div>`:''}
       <div class="kcard-footer">
         ${dv?`<div class="av" style="background:${dv.color};width:18px;height:18px;font-size:8px">${dv.id}</div><span style="font-size:10px;color:var(--text3)">${dv.name}</span>`:'<span style="font-size:10px;color:var(--text3);font-style:italic">Unassigned</span>'}
