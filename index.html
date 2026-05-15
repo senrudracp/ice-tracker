@@ -113,7 +113,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pane{display:none}
 .pane.active{display:block}
 .scroll-area{height:calc(100vh - 156px);overflow-y:auto;overflow-x:hidden}
-.tbl-wrap{overflow-x:auto}
+.tbl-wrap{overflow-x:auto;min-width:0}
 table{width:100%;border-collapse:collapse;font-size:12px;min-width:1100px}
 thead{position:sticky;top:0;z-index:5}
 thead tr{background:var(--navy);border-bottom:2px solid var(--accent)}
@@ -549,7 +549,7 @@ const sb      = supabase.createClient(SB_URL, SB_KEY);
 // ── State ───────────────────────────────────────────────────
 let tasks=[], assignments={}, developers=[], sprints=[], history=[];
 let filteredRows=[], page=0;
-const PAGE=15;
+const PAGE=100;
 let sortCol='fr', sortDir=1;
 let filt={be:false,fe:false,int:false,done:false,inprog:false,blocked:false,notstart:false};
 let pickedColor='#2e7de9';
@@ -659,12 +659,29 @@ function populateFilters(){
   document.getElementById('dep-fr').innerHTML='<option value="">Select FR...</option>'+frs.map(f=>`<option>${f}</option>`).join('');
   document.getElementById('sprint-fr-filter').innerHTML=frOpts;
 
-  // Sprint selectors — from sprints array
+  // Deduplicate sprints: if both "Sprint 1" and "Sprint 1 — MVP" exist, keep only the one with phase
+  const sprintNames=sprints.map(s=>s.name);
+  const cleanSprints=sprints.filter(s=>{
+    // If this is a bare "Sprint N" and a "Sprint N —" version exists, skip it
+    const bare=s.name.match(/^Sprint\s+(\d+)$/i);
+    if(bare){
+      const n=bare[1];
+      return !sprintNames.some(n2=>n2.match(new RegExp(`^Sprint\\s+${n}\\s+—`,'i')));
+    }
+    return true;
+  });
+  // Sort by sprint number extracted from name
+  cleanSprints.sort((a,b)=>{
+    const na=parseInt((a.name.match(/Sprint\s+(\d+)/i)||[0,0])[1]);
+    const nb=parseInt((b.name.match(/Sprint\s+(\d+)/i)||[0,0])[1]);
+    return na-nb;
+  });
+
   const sprintOpts='<option value="">Select sprint...</option>'+
-    sprints.map(s=>`<option value="${s.id}">${s.name.replace(/^\d+\|/,'')}</option>`).join('');
+    cleanSprints.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
   document.getElementById('sprint-sel').innerHTML=sprintOpts;
   document.getElementById('f-sprint').innerHTML='<option value="">All sprints</option>'+
-    sprints.map(s=>`<option value="${s.id}">${s.name.replace(/^\d+\|/,'')}</option>`).join('');
+    cleanSprints.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
 }
 
 function toggleF(k){filt[k]=!filt[k];document.getElementById('fc-'+k).classList.toggle('on',filt[k]);page=0;filterReg();}
