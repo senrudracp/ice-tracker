@@ -100,6 +100,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sel-dark{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-size:11px;color:var(--text);cursor:pointer}
 .sel-dark:focus{outline:none;border-color:var(--accent)}
 
+.msel{position:relative;display:inline-block}
+.msel-btn{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-size:11px;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:6px}
+.msel-btn:hover{border-color:var(--accent)}
+.msel-menu{display:none;position:absolute;left:0;top:calc(100% + 6px);background:var(--navy2);border:1px solid var(--border2);border-radius:10px;min-width:170px;box-shadow:var(--shadow);z-index:200;padding:6px}
+.msel-menu.open{display:block}
+.msel-row{display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;border-radius:6px}
+.msel-row:hover{background:var(--surface3);color:var(--text)}
+.msel-row input{accent-color:var(--accent);cursor:pointer}
+.msel-foot{display:flex;justify-content:space-between;padding:6px 4px 2px;border-top:1px solid var(--border);margin-top:4px}
+.msel-foot button{background:transparent;border:none;color:var(--accent);font-size:10px;font-weight:600;cursor:pointer;padding:3px 4px}
+.msel-foot button:hover{text-decoration:underline}
+.msel-menu-scroll{max-height:320px;overflow-y:auto}
+.msel-menu-scroll #rel-fr-options{max-height:220px;overflow-y:auto}
+.msel-search{width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:11px;color:var(--text);margin-bottom:4px}
+.msel-search:focus{outline:none;border-color:var(--accent)}
+
 /* ── Tab bar ───────────────────────────────────────────────── */
 .stat-bar{position:sticky;top:48px;z-index:90;background:var(--navy2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:0}
 .tab-bar{position:sticky;top:116px;z-index:89;background:var(--navy2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;gap:0}
@@ -354,6 +370,7 @@ tr.highlight td{background:rgba(46,125,233,.08)}
   <button class="tab active" data-tab="register" onclick="showTab('register',this)"><i class="ti ti-layout-list"></i> Task Register <span class="tab-n" id="tn-reg">—</span></button>
   <button class="tab" data-tab="team" onclick="showTab('team',this)"><i class="ti ti-users"></i> Team <span class="tab-n" id="tn-team">—</span></button>
   <button class="tab" data-tab="deps" onclick="showTab('deps',this)"><i class="ti ti-git-branch"></i> Dependencies</button>
+  <button class="tab" data-tab="relations" onclick="showTab('relations',this)"><i class="ti ti-affiliate"></i> Task Relationships</button>
   <button class="tab" data-tab="sprint" onclick="showTab('sprint',this)"><i class="ti ti-columns"></i> Sprint Board</button>
   <button class="tab" data-tab="history" onclick="showTab('history',this)"><i class="ti ti-history"></i> Audit Log</button>
 </div>
@@ -415,6 +432,52 @@ tr.highlight td{background:rgba(46,125,233,.08)}
       <span style="font-size:11px;color:var(--text3)">🟢 Ready &nbsp;·&nbsp; 🟡 Intra-FR dep &nbsp;·&nbsp; 🔴 Needs another FR</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" id="dep-body"></div>
+  </div>
+</div>
+
+<!-- RELATIONS PANE -->
+<div id="pane-relations" class="pane">
+  <div style="padding:14px 16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div class="msel" id="rel-fr-picker">
+        <button class="msel-btn" onclick="toggleRelFrMenu()" type="button">
+          <i class="ti ti-list-details"></i> <span id="rel-fr-label">All FRs</span> <i class="ti ti-chevron-down" style="font-size:11px"></i>
+        </button>
+        <div class="msel-menu msel-menu-scroll" id="rel-fr-menu">
+          <input type="text" class="msel-search" id="rel-fr-search" placeholder="Search FR..." oninput="renderRelFrOptions()">
+          <div id="rel-fr-options"></div>
+          <div class="msel-foot">
+            <button type="button" onclick="relFrClear()">Clear</button>
+            <button type="button" onclick="relFrAll()">Select all</button>
+          </div>
+        </div>
+      </div>
+      <select class="sel-dark" id="rel-type" onchange="renderRelations()">
+        <option value="">All types</option>
+        <option value="BE">BE</option>
+        <option value="FE">FE</option>
+        <option value="INT">INT</option>
+      </select>
+      <div class="msel" id="rel-status-picker">
+        <button class="msel-btn" onclick="toggleRelStatusMenu()" type="button">
+          <i class="ti ti-filter"></i> <span id="rel-status-label">All statuses</span> <i class="ti ti-chevron-down" style="font-size:11px"></i>
+        </button>
+        <div class="msel-menu" id="rel-status-menu">
+          <label class="msel-row"><input type="checkbox" value="NOT STARTED" onchange="toggleRelStatus(this)"> Not started</label>
+          <label class="msel-row"><input type="checkbox" value="IN PROGRESS" onchange="toggleRelStatus(this)"> In progress</label>
+          <label class="msel-row"><input type="checkbox" value="DONE" onchange="toggleRelStatus(this)"> Done</label>
+          <label class="msel-row"><input type="checkbox" value="BLOCKED" onchange="toggleRelStatus(this)"> Blocked</label>
+          <label class="msel-row"><input type="checkbox" value="AT RISK" onchange="toggleRelStatus(this)"> At risk</label>
+          <div class="msel-foot">
+            <button type="button" onclick="relStatusClear()">Clear</button>
+            <button type="button" onclick="relStatusAll()">Select all</button>
+          </div>
+        </div>
+      </div>
+      <span style="font-size:11px;color:var(--text3)">🟢 Independent &nbsp;·&nbsp; 🟡 Intra-FR dep &nbsp;·&nbsp; 🔴 Inter-FR dep</span>
+      <div id="rel-stats" style="margin-left:auto;font-size:11px;color:var(--text3);display:flex;gap:14px"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px" id="rel-body"></div>
   </div>
 </div>
 
@@ -648,6 +711,7 @@ function showTab(id,el){
   document.getElementById('pane-'+id).classList.add('active');
   if(id==='team')renderTeam();
   if(id==='deps')renderDeps();
+  if(id==='relations')renderRelations();
   if(id==='sprint')renderSprint();
   if(id==='history')renderHistory();
 }
@@ -657,6 +721,9 @@ function populateFilters(){
   const frOpts='<option value="">All FRs</option>'+frs.map(f=>`<option>${f}</option>`).join('');
   document.getElementById('f-fr').innerHTML=frOpts;
   document.getElementById('dep-fr').innerHTML='<option value="">Select FR...</option>'+frs.map(f=>`<option>${f}</option>`).join('');
+  relFrAllOptions=frs;
+  renderRelFrOptions();
+  updateRelFrLabel();
   document.getElementById('sprint-fr-filter').innerHTML=frOpts;
 
   // Deduplicate sprints: if both "Sprint 1" and "Sprint 1 — MVP" exist, keep only the one with phase
@@ -751,6 +818,16 @@ function changePage(d){page+=d;renderPage();}
 function getDevColor(id){return (developers.find(d=>d.id===id)||{}).color||'#444';}
 function getDevName(id){const d=developers.find(x=>x.id===id);return d?d.name+' ('+d.id+')':'';}
 
+function assigneeFooter(t){
+  const devId=assignments[t.id]?.developer_id||'';
+  const devColor=getDevColor(devId);
+  const devName=devId?getDevName(devId):'Unassigned';
+  return`<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px">
+    <div class="av" style="background:${devColor};width:18px;height:18px;font-size:8px">${devId||'?'}</div>
+    <span style="font-size:10px;color:${devId?'var(--text2)':'var(--text3)'}">${devName}</span>
+  </div>`;
+}
+
 function renderPage(){
   const total=filteredRows.length;
   const pages=Math.max(1,Math.ceil(total/PAGE));
@@ -774,8 +851,9 @@ function renderPage(){
     const devId=a.developer_id||'';
     const devColor=getDevColor(devId);
     const tc=t.type==='BE'?'t-be':t.type==='FE'?'t-fe':'t-int';
-    const rc=t.readiness==='can_start'?'rc-can':t.readiness==='dep_on'?'rc-dep':'rc-needs';
-    const rl=t.readiness==='can_start'?'✓ Ready':t.readiness==='dep_on'?'~ Queued':'✗ Blocked';
+    const eff=effectiveReadiness(t);
+    const rc=eff==='can_start'?'rc-can':eff==='dep_on'?'rc-dep':'rc-needs';
+    const rl=eff==='can_start'?'✓ Ready':eff==='dep_on'?'~ Queued':'✗ Blocked';
     const isAng=t.pkg_path&&t.pkg_path.includes('features');
     const fc=isAng?'var(--file-ang)':t.type==='FE'?'var(--file-fe)':'var(--file-be)';
     const dOpts=devOpts.replace(`value="${devId}"`,`value="${devId}" selected`);
@@ -864,6 +942,79 @@ function renderTeam(){
   }).join('');
 }
 
+// ── Effective readiness ──────────────────────────────────────
+// A task's stored `readiness` is computed offline from the raw dependency
+// text and never updated automatically. Here we resolve `dependent_on`
+// (e.g. "FR-001 / BE-01, BE-10") to the specific blocking task id(s) and,
+// if every one of them is DONE, treat the task as independent so it shows
+// up as pickable without needing a re-sync from the source spreadsheet.
+const EMPTY_DEP_VALUES=new Set(['','none','nan','—','-']);
+const FR_RE=/\bFR-(\d+)\b/;
+const NFR_RE=/\bNFR-\d+\b/;
+
+function parseDependencyIds(t){
+  const raw=(t.dependent_on||'').trim();
+  if(!raw || EMPTY_DEP_VALUES.has(raw.toLowerCase())) return [];
+  const segments=raw.split(/[\n;]+/).map(s=>s.trim()).filter(Boolean);
+  const ids=new Set();
+
+  segments.forEach(seg=>{
+    // "FR-013 to FR-017 all tasks" — inclusive FR range, every task in each FR
+    const rangeM=seg.match(/\bFR-(\d+)\s+to\s+FR-(\d+)\b/i);
+    if(rangeM){
+      const lo=parseInt(rangeM[1],10), hi=parseInt(rangeM[2],10);
+      tasks.forEach(x=>{
+        const n=parseInt((x.fr.match(FR_RE)||[])[1],10);
+        if(!isNaN(n) && n>=lo && n<=hi && x.id!==t.id) ids.add(x.id);
+      });
+      return;
+    }
+
+    // "All BE" / "All BE + FE tasks" / "All tasks" — every task of that type in the FR
+    const allM=seg.match(/\ball\s+((?:BE|FE|INT)(?:\s*\+\s*(?:BE|FE|INT))*|tasks)\b/i);
+    if(allM){
+      const frM=seg.match(FR_RE);
+      const fr=frM?('FR-'+frM[1]):t.fr;
+      const spec=allM[1].toLowerCase();
+      const typesWanted=spec==='tasks'?['BE','FE','INT']:spec.split('+').map(s=>s.trim().toUpperCase());
+      tasks.forEach(x=>{ if(x.fr===fr && typesWanted.includes(x.type) && x.id!==t.id) ids.add(x.id); });
+      return;
+    }
+
+    if(NFR_RE.test(seg) && !FR_RE.test(seg)) return; // external doc ref — can't verify completion
+
+    // Comma-separated refs; an explicit "FR-xxx" carries forward to later
+    // items in the same list until superseded (e.g. "BE-03, BE-04, FR-033 BE-01"
+    // means BE-03/BE-04 are this task's own FR, BE-01 is FR-033's).
+    let carryFr=null;
+    seg.split(',').map(s=>s.trim()).filter(Boolean).forEach(item=>{
+      const frM=item.match(FR_RE);
+      if(frM) carryFr='FR-'+frM[1];
+      const fr=frM?carryFr:(carryFr||t.fr);
+      const cleaned=item.replace(FR_RE,'').split('·')[0].replace(/\([^)]*\)/g,'');
+      const toks=cleaned.match(/\b(?:BE|FE|INT)-\d+\b/g);
+      if(toks){ toks.forEach(tok=>ids.add(fr+':'+tok)); return; }
+      if(frM){ // bare FR reference with no specific task — whole FR must be complete
+        tasks.forEach(x=>{ if(x.fr===fr && x.id!==t.id) ids.add(x.id); });
+      }
+    });
+  });
+
+  return [...ids];
+}
+
+function effectiveReadiness(t){
+  if(t.readiness==='can_start') return 'can_start';
+  const depIds=parseDependencyIds(t);
+  if(!depIds.length) return t.readiness; // nothing resolvable — keep as classified
+  const allDone=depIds.every(id=>((assignments[id]||{}).status)==='DONE');
+  return allDone?'can_start':t.readiness;
+}
+
+function statusColor(st){
+  return st==='DONE'?'var(--green)':st==='IN PROGRESS'?'var(--accent)':st==='BLOCKED'?'var(--red)':st==='AT RISK'?'var(--amber)':'var(--text3)';
+}
+
 // ── Deps tab ─────────────────────────────────────────────────
 function renderDeps(){
   const fr=document.getElementById('dep-fr').value;
@@ -872,31 +1023,159 @@ function renderDeps(){
   const be=ts.filter(t=>t.type==='BE');
   const fe=ts.filter(t=>t.type!=='BE');
   function card(t){
-    const cls=t.readiness==='can_start'?'dc-can':t.readiness==='dep_on'?'dc-dep':'dc-needs';
-    const lbl=t.readiness==='can_start'?'🟢 Ready now':t.readiness==='dep_on'?'🟡 Intra-FR dep':'🔴 Needs another FR';
+    const r=effectiveReadiness(t);
+    const promoted=r==='can_start'&&t.readiness!=='can_start';
+    const st=(assignments[t.id]?.status)||'NOT STARTED';
+    const cls=r==='can_start'?'dc-can':r==='dep_on'?'dc-dep':'dc-needs';
+    const lbl=r==='can_start'?'🟢 Ready now':r==='dep_on'?'🟡 Intra-FR dep':'🔴 Needs another FR';
     // Format dependency string cleanly
     let depHtml='';
-    if(t.readiness!=='can_start' && t.dependent_on){
+    if(r!=='can_start' && t.dependent_on){
       const dep=t.dependent_on.trim();
       depHtml=`<div style="margin-top:6px;padding:5px 8px;border-radius:4px;background:var(--surface3);font-size:10px;line-height:1.5">
         <span style="color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Waiting on: </span>
         <span style="color:var(--text2);font-family:monospace">${dep}</span>
       </div>`;
+    }else if(promoted){
+      depHtml=`<div style="margin-top:6px;padding:5px 8px;border-radius:4px;background:rgba(22,163,74,.1);font-size:10px;line-height:1.5;color:var(--green);font-weight:600">✓ Dependency completed — ready to pick up</div>`;
     }
     return`<div class="dep-card ${cls}">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
         <span style="font-family:monospace;font-size:11px;font-weight:700;color:#fff">${t.task_id}</span>
         <span class="${t.type==='BE'?'t-be':t.type==='FE'?'t-fe':'t-int'}">${t.type}</span>
+        <span style="font-size:9px;font-weight:600;color:${statusColor(st)};text-transform:uppercase;letter-spacing:.3px">${st}</span>
         <span style="margin-left:auto;font-size:10px;color:var(--text3)">${lbl}</span>
       </div>
       <div style="font-size:11px;color:var(--text2);line-height:1.4">${t.description}</div>
       ${t.file_name?`<div style="font-size:10px;font-family:monospace;color:var(--green);margin-top:4px">${t.file_name}</div>`:''}
       ${depHtml}
+      ${assigneeFooter(t)}
     </div>`;
   }
   document.getElementById('dep-body').innerHTML=`
     <div><div class="sec-title">Backend (${be.length})</div>${be.map(card).join('')||'<div style="color:var(--text3);font-size:12px">None</div>'}</div>
     <div><div class="sec-title">Frontend + INT (${fe.length})</div>${fe.map(card).join('')||'<div style="color:var(--text3);font-size:12px">None</div>'}</div>`;
+}
+
+// ── Relationships tab (independent / intra-FR / inter-FR, all FRs) ──
+let relStatusFilter=new Set();
+let relFrFilter=new Set();
+let relFrAllOptions=[];
+
+function toggleRelStatusMenu(){document.getElementById('rel-status-menu').classList.toggle('open');}
+function closeRelStatusMenu(){document.getElementById('rel-status-menu').classList.remove('open');}
+function toggleRelFrMenu(){document.getElementById('rel-fr-menu').classList.toggle('open');}
+function closeRelFrMenu(){document.getElementById('rel-fr-menu').classList.remove('open');}
+document.addEventListener('click',e=>{
+  const statusPicker=document.getElementById('rel-status-picker');
+  if(statusPicker && !statusPicker.contains(e.target)) closeRelStatusMenu();
+  const frPicker=document.getElementById('rel-fr-picker');
+  if(frPicker && !frPicker.contains(e.target)) closeRelFrMenu();
+});
+
+function updateRelFrLabel(){
+  const n=relFrFilter.size;
+  document.getElementById('rel-fr-label').textContent=
+    n===0?'All FRs':n===1?[...relFrFilter][0]:n+' FRs';
+}
+function renderRelFrOptions(){
+  const q=(document.getElementById('rel-fr-search').value||'').toLowerCase();
+  const frs=relFrAllOptions.filter(f=>f.toLowerCase().includes(q));
+  document.getElementById('rel-fr-options').innerHTML=frs.map(f=>
+    `<label class="msel-row"><input type="checkbox" value="${f}"${relFrFilter.has(f)?' checked':''} onchange="toggleRelFr(this)"> ${f}</label>`
+  ).join('')||'<div style="padding:8px;font-size:11px;color:var(--text3)">No match</div>';
+}
+function toggleRelFr(cb){
+  if(cb.checked) relFrFilter.add(cb.value); else relFrFilter.delete(cb.value);
+  updateRelFrLabel();
+  renderRelations();
+}
+function relFrClear(){
+  relFrFilter.clear();
+  renderRelFrOptions();
+  updateRelFrLabel();
+  renderRelations();
+}
+function relFrAll(){
+  relFrAllOptions.forEach(f=>relFrFilter.add(f));
+  renderRelFrOptions();
+  updateRelFrLabel();
+  renderRelations();
+}
+
+function updateRelStatusLabel(){
+  const n=relStatusFilter.size;
+  document.getElementById('rel-status-label').textContent=
+    n===0?'All statuses':n===1?[...relStatusFilter][0]:n+' statuses';
+}
+function toggleRelStatus(cb){
+  if(cb.checked) relStatusFilter.add(cb.value); else relStatusFilter.delete(cb.value);
+  updateRelStatusLabel();
+  renderRelations();
+}
+function relStatusClear(){
+  relStatusFilter.clear();
+  document.querySelectorAll('#rel-status-menu input[type=checkbox]').forEach(cb=>cb.checked=false);
+  updateRelStatusLabel();
+  renderRelations();
+}
+function relStatusAll(){
+  document.querySelectorAll('#rel-status-menu input[type=checkbox]').forEach(cb=>{cb.checked=true;relStatusFilter.add(cb.value);});
+  updateRelStatusLabel();
+  renderRelations();
+}
+
+function renderRelations(){
+  const typeF=document.getElementById('rel-type').value;
+  let ts=tasks;
+  if(relFrFilter.size) ts=ts.filter(t=>relFrFilter.has(t.fr));
+  if(typeF) ts=ts.filter(t=>t.type===typeF);
+  if(relStatusFilter.size) ts=ts.filter(t=>relStatusFilter.has((assignments[t.id]?.status)||'NOT STARTED'));
+
+  const groups={can_start:[],dep_on:[],needs_fr:[]};
+  ts.forEach(t=>(groups[effectiveReadiness(t)]||groups.can_start).push(t));
+  const byFrTask=(a,b)=>a.fr<b.fr?-1:a.fr>b.fr?1:a.task_id<b.task_id?-1:a.task_id>b.task_id?1:0;
+  Object.values(groups).forEach(g=>g.sort(byFrTask));
+
+  document.getElementById('rel-stats').innerHTML=
+    `<span><strong style="color:var(--text)">${ts.length}</strong> tasks</span>
+     <span><strong style="color:var(--green)">${groups.can_start.length}</strong> independent</span>
+     <span><strong style="color:var(--amber)">${groups.dep_on.length}</strong> intra-FR</span>
+     <span><strong style="color:var(--red)">${groups.needs_fr.length}</strong> inter-FR</span>`;
+
+  function card(t){
+    const r=effectiveReadiness(t);
+    const promoted=r==='can_start'&&t.readiness!=='can_start';
+    const st=(assignments[t.id]?.status)||'NOT STARTED';
+    let depHtml='';
+    if(r!=='can_start' && t.dependent_on){
+      const dep=t.dependent_on.trim();
+      depHtml=`<div style="margin-top:6px;padding:5px 8px;border-radius:4px;background:var(--surface3);font-size:10px;line-height:1.5">
+        <span style="color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Waiting on: </span>
+        <span style="color:var(--text2);font-family:monospace">${dep}</span>
+      </div>`;
+    }else if(promoted){
+      depHtml=`<div style="margin-top:6px;padding:5px 8px;border-radius:4px;background:rgba(22,163,74,.1);font-size:10px;line-height:1.5;color:var(--green);font-weight:600">✓ Dependency completed — ready to pick up</div>`;
+    }
+    const cls=r==='can_start'?'dc-can':r==='dep_on'?'dc-dep':'dc-needs';
+    return`<div class="dep-card ${cls}">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+        <span class="fr-tag">${t.fr}</span>
+        <span style="font-family:monospace;font-size:11px;font-weight:700;color:#fff">${t.task_id}</span>
+        <span class="${t.type==='BE'?'t-be':t.type==='FE'?'t-fe':'t-int'}">${t.type}</span>
+        <span style="margin-left:auto;font-size:9px;font-weight:600;color:${statusColor(st)};text-transform:uppercase;letter-spacing:.3px">${st}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.4">${t.description}</div>
+      ${t.file_name?`<div style="font-size:10px;font-family:monospace;color:var(--green);margin-top:4px">${t.file_name}</div>`:''}
+      ${depHtml}
+      ${assigneeFooter(t)}
+    </div>`;
+  }
+
+  document.getElementById('rel-body').innerHTML=`
+    <div><div class="sec-title">🟢 Independent (${groups.can_start.length})</div>${groups.can_start.map(card).join('')||'<div style="color:var(--text3);font-size:12px">None</div>'}</div>
+    <div><div class="sec-title">🟡 Intra-FR (${groups.dep_on.length})</div>${groups.dep_on.map(card).join('')||'<div style="color:var(--text3);font-size:12px">None</div>'}</div>
+    <div><div class="sec-title">🔴 Inter-FR (${groups.needs_fr.length})</div>${groups.needs_fr.map(card).join('')||'<div style="color:var(--text3);font-size:12px">None</div>'}</div>`;
 }
 
 // ── Sprint board (status-based kanban) ──────────────────────
