@@ -119,6 +119,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* ── Tab bar ───────────────────────────────────────────────── */
 .stat-bar{position:sticky;top:48px;z-index:90;background:var(--navy2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:0}
 .tab-bar{position:sticky;top:116px;z-index:89;background:var(--navy2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;gap:0}
+.reg-filter-row{position:sticky;z-index:88;background:var(--navy2);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .tab{padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text3);border-bottom:2px solid transparent;display:flex;align-items:center;gap:5px;transition:.15s;white-space:nowrap}
 .tab:hover{color:var(--text)}
 .tab.active{color:var(--text);border-bottom-color:var(--accent)}
@@ -377,6 +378,46 @@ tr.highlight td{background:rgba(46,125,233,.08)}
 
 <!-- REGISTER PANE -->
 <div id="pane-register" class="pane active">
+  <div class="reg-filter-row" id="reg-filter-row">
+    <div class="msel" id="reg-fr-picker">
+      <button class="msel-btn" onclick="toggleFrMenu('reg')" type="button">
+        <i class="ti ti-list-details"></i> <span id="reg-fr-label">All FRs</span> <i class="ti ti-chevron-down" style="font-size:11px"></i>
+      </button>
+      <div class="msel-menu msel-menu-scroll" id="reg-fr-menu">
+        <input type="text" class="msel-search" id="reg-fr-search" placeholder="Search FR..." oninput="renderFrOptions('reg')">
+        <div id="reg-fr-options"></div>
+        <div class="msel-foot">
+          <button type="button" onclick="frClear('reg')">Clear</button>
+          <button type="button" onclick="frSelectAll('reg')">Select all</button>
+        </div>
+      </div>
+    </div>
+    <select class="sel-dark" id="reg-type" onchange="page=0;filterReg()">
+      <option value="">All types</option>
+      <option value="BE">BE</option>
+      <option value="FE">FE</option>
+      <option value="INT">INT</option>
+    </select>
+    <div class="msel" id="reg-status-picker">
+      <button class="msel-btn" onclick="toggleStatusMenu('reg')" type="button">
+        <i class="ti ti-filter"></i> <span id="reg-status-label">All statuses</span> <i class="ti ti-chevron-down" style="font-size:11px"></i>
+      </button>
+      <div class="msel-menu" id="reg-status-menu">
+        <label class="msel-row"><input type="checkbox" value="NOT STARTED" onchange="toggleStatus('reg',this)"> Not started</label>
+        <label class="msel-row"><input type="checkbox" value="IN PROGRESS" onchange="toggleStatus('reg',this)"> In progress</label>
+        <label class="msel-row"><input type="checkbox" value="DONE" onchange="toggleStatus('reg',this)"> Done</label>
+        <label class="msel-row"><input type="checkbox" value="BLOCKED" onchange="toggleStatus('reg',this)"> Blocked</label>
+        <label class="msel-row"><input type="checkbox" value="AT RISK" onchange="toggleStatus('reg',this)"> At risk</label>
+        <div class="msel-foot">
+          <button type="button" onclick="statusClear('reg')">Clear</button>
+          <button type="button" onclick="statusSelectAll('reg')">Select all</button>
+        </div>
+      </div>
+    </div>
+    <select class="sel-dark" id="reg-assignee" onchange="page=0;filterReg()">
+      <option value="">All assignees</option>
+    </select>
+  </div>
   <div class="scroll-area">
   <div class="tbl-wrap">
     <table>
@@ -440,15 +481,15 @@ tr.highlight td{background:rgba(46,125,233,.08)}
   <div style="padding:14px 16px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
       <div class="msel" id="rel-fr-picker">
-        <button class="msel-btn" onclick="toggleRelFrMenu()" type="button">
+        <button class="msel-btn" onclick="toggleFrMenu('rel')" type="button">
           <i class="ti ti-list-details"></i> <span id="rel-fr-label">All FRs</span> <i class="ti ti-chevron-down" style="font-size:11px"></i>
         </button>
         <div class="msel-menu msel-menu-scroll" id="rel-fr-menu">
-          <input type="text" class="msel-search" id="rel-fr-search" placeholder="Search FR..." oninput="renderRelFrOptions()">
+          <input type="text" class="msel-search" id="rel-fr-search" placeholder="Search FR..." oninput="renderFrOptions('rel')">
           <div id="rel-fr-options"></div>
           <div class="msel-foot">
-            <button type="button" onclick="relFrClear()">Clear</button>
-            <button type="button" onclick="relFrAll()">Select all</button>
+            <button type="button" onclick="frClear('rel')">Clear</button>
+            <button type="button" onclick="frSelectAll('rel')">Select all</button>
           </div>
         </div>
       </div>
@@ -459,18 +500,18 @@ tr.highlight td{background:rgba(46,125,233,.08)}
         <option value="INT">INT</option>
       </select>
       <div class="msel" id="rel-status-picker">
-        <button class="msel-btn" onclick="toggleRelStatusMenu()" type="button">
+        <button class="msel-btn" onclick="toggleStatusMenu('rel')" type="button">
           <i class="ti ti-filter"></i> <span id="rel-status-label">All statuses</span> <i class="ti ti-chevron-down" style="font-size:11px"></i>
         </button>
         <div class="msel-menu" id="rel-status-menu">
-          <label class="msel-row"><input type="checkbox" value="NOT STARTED" onchange="toggleRelStatus(this)"> Not started</label>
-          <label class="msel-row"><input type="checkbox" value="IN PROGRESS" onchange="toggleRelStatus(this)"> In progress</label>
-          <label class="msel-row"><input type="checkbox" value="DONE" onchange="toggleRelStatus(this)"> Done</label>
-          <label class="msel-row"><input type="checkbox" value="BLOCKED" onchange="toggleRelStatus(this)"> Blocked</label>
-          <label class="msel-row"><input type="checkbox" value="AT RISK" onchange="toggleRelStatus(this)"> At risk</label>
+          <label class="msel-row"><input type="checkbox" value="NOT STARTED" onchange="toggleStatus('rel',this)"> Not started</label>
+          <label class="msel-row"><input type="checkbox" value="IN PROGRESS" onchange="toggleStatus('rel',this)"> In progress</label>
+          <label class="msel-row"><input type="checkbox" value="DONE" onchange="toggleStatus('rel',this)"> Done</label>
+          <label class="msel-row"><input type="checkbox" value="BLOCKED" onchange="toggleStatus('rel',this)"> Blocked</label>
+          <label class="msel-row"><input type="checkbox" value="AT RISK" onchange="toggleStatus('rel',this)"> At risk</label>
           <div class="msel-foot">
-            <button type="button" onclick="relStatusClear()">Clear</button>
-            <button type="button" onclick="relStatusAll()">Select all</button>
+            <button type="button" onclick="statusClear('rel')">Clear</button>
+            <button type="button" onclick="statusSelectAll('rel')">Select all</button>
           </div>
         </div>
       </div>
@@ -593,13 +634,17 @@ function setScrollHeight(){
   const nav = document.querySelector('.nav');
   const stat = document.querySelector('.stat-bar');
   const tabs = document.querySelector('.tab-bar');
+  const regFilter = document.getElementById('reg-filter-row');
   const offset = (nav?.offsetHeight||0) + (stat?.offsetHeight||0) + (tabs?.offsetHeight||0);
   document.querySelectorAll('.scroll-area').forEach(el=>{
-    el.style.height = `calc(100vh - ${offset}px)`;
+    const inRegister = el.closest('#pane-register');
+    const extra = inRegister ? (regFilter?.offsetHeight||0) : 0;
+    el.style.height = `calc(100vh - ${offset+extra}px)`;
   });
   // Also update sticky positions
   if(stat) stat.style.top = (nav?.offsetHeight||0)+'px';
   if(tabs) tabs.style.top = ((nav?.offsetHeight||0)+(stat?.offsetHeight||0))+'px';
+  if(regFilter) regFilter.style.top = ((nav?.offsetHeight||0)+(stat?.offsetHeight||0)+(tabs?.offsetHeight||0))+'px';
 }
 window.addEventListener('resize', setScrollHeight);
 setTimeout(setScrollHeight, 100);
@@ -721,10 +766,15 @@ function populateFilters(){
   const frOpts='<option value="">All FRs</option>'+frs.map(f=>`<option>${f}</option>`).join('');
   document.getElementById('f-fr').innerHTML=frOpts;
   document.getElementById('dep-fr').innerHTML='<option value="">Select FR...</option>'+frs.map(f=>`<option>${f}</option>`).join('');
-  relFrAllOptions=frs;
-  renderRelFrOptions();
-  updateRelFrLabel();
+  frAllOptions=frs;
+  renderFrOptions('rel');
+  updateFrLabel('rel');
+  renderFrOptions('reg');
+  updateFrLabel('reg');
   document.getElementById('sprint-fr-filter').innerHTML=frOpts;
+
+  document.getElementById('reg-assignee').innerHTML='<option value="">All assignees</option>'+
+    developers.map(d=>`<option value="${d.id}">${d.name} (${d.id})</option>`).join('');
 
   // Deduplicate sprints: if both "Sprint 1" and "Sprint 1 — MVP" exist, keep only the one with phase
   const sprintNames=sprints.map(s=>s.name);
@@ -764,6 +814,8 @@ function filterReg(){
   const spF=document.getElementById('f-sprint').value;
   const anyT=filt.be||filt.fe||filt.int;
   const anySt=filt.done||filt.inprog||filt.blocked||filt.notstart;
+  const regTypeF=document.getElementById('reg-type')?.value||'';
+  const regAssigneeF=document.getElementById('reg-assignee')?.value||'';
 
   // Resolve sprint filter: spF is the sprint DB id, tasks store sprint_no (1,2,3...)
   // Extract sprint number from the sprint name e.g. "Sprint 5 — MVP" → 5
@@ -778,17 +830,21 @@ function filterReg(){
 
   filteredRows=tasks.filter(t=>{
     if(frF&&t.fr!==frF)return false;
+    if(regFrFilter.size&&!regFrFilter.has(t.fr))return false;
     if(sprintNoFilter!==null&&t.sprint_no!==sprintNoFilter)return false;
     const a=assignments[t.id]||{};
     if(anyT){
       const m=(filt.be&&t.type==='BE')||(filt.fe&&t.type==='FE')||(filt.int&&t.type==='INT');
       if(!m)return false;
     }
+    if(regTypeF&&t.type!==regTypeF)return false;
     if(anySt){
       const st=(a.status||'NOT STARTED');
       const m=(filt.done&&st==='DONE')||(filt.inprog&&st==='IN PROGRESS')||(filt.blocked&&st==='BLOCKED')||(filt.notstart&&st==='NOT STARTED');
       if(!m)return false;
     }
+    if(regStatusFilter.size&&!regStatusFilter.has(a.status||'NOT STARTED'))return false;
+    if(regAssigneeF&&(a.developer_id||'')!==regAssigneeF)return false;
     if(q){
       const haystack=[t.fr,t.task_id,t.description,t.file_name,t.module,(assignments[t.id]?.developer_id||'')].join(' ').toLowerCase();
       if(!haystack.includes(q))return false;
@@ -1057,73 +1113,87 @@ function renderDeps(){
     <div><div class="sec-title">Frontend + INT (${fe.length})</div>${fe.map(card).join('')||'<div style="color:var(--text3);font-size:12px">None</div>'}</div>`;
 }
 
-// ── Relationships tab (independent / intra-FR / inter-FR, all FRs) ──
-let relStatusFilter=new Set();
-let relFrFilter=new Set();
-let relFrAllOptions=[];
+// ── Generic multi-select dropdown (FR / status) ──────────────
+// Shared by the Task Relationships filter bar and the Task Register filter
+// bar — both are keyed by a prefix ('rel' or 'reg') so the two tabs keep
+// fully independent selection state while reusing the same widget logic.
+const STATUS_OPTIONS=['NOT STARTED','IN PROGRESS','DONE','BLOCKED','AT RISK'];
+let frAllOptions=[];
+const frFilterSets={rel:new Set(),reg:new Set()};
+const statusFilterSets={rel:new Set(),reg:new Set()};
+const frOnChange={rel:()=>renderRelations(),reg:()=>{page=0;filterReg();}};
+const statusOnChange=frOnChange;
+// Back-compat aliases used elsewhere in this file
+const relFrFilter=frFilterSets.rel, regFrFilter=frFilterSets.reg;
+const relStatusFilter=statusFilterSets.rel, regStatusFilter=statusFilterSets.reg;
 
-function toggleRelStatusMenu(){document.getElementById('rel-status-menu').classList.toggle('open');}
-function closeRelStatusMenu(){document.getElementById('rel-status-menu').classList.remove('open');}
-function toggleRelFrMenu(){document.getElementById('rel-fr-menu').classList.toggle('open');}
-function closeRelFrMenu(){document.getElementById('rel-fr-menu').classList.remove('open');}
 document.addEventListener('click',e=>{
-  const statusPicker=document.getElementById('rel-status-picker');
-  if(statusPicker && !statusPicker.contains(e.target)) closeRelStatusMenu();
-  const frPicker=document.getElementById('rel-fr-picker');
-  if(frPicker && !frPicker.contains(e.target)) closeRelFrMenu();
+  document.querySelectorAll('.msel').forEach(el=>{
+    if(!el.contains(e.target)) el.querySelector('.msel-menu')?.classList.remove('open');
+  });
 });
 
-function updateRelFrLabel(){
-  const n=relFrFilter.size;
-  document.getElementById('rel-fr-label').textContent=
-    n===0?'All FRs':n===1?[...relFrFilter][0]:n+' FRs';
+function toggleFrMenu(prefix){document.getElementById(prefix+'-fr-menu').classList.toggle('open');}
+function toggleStatusMenu(prefix){document.getElementById(prefix+'-status-menu').classList.toggle('open');}
+
+function updateFrLabel(prefix){
+  const set=frFilterSets[prefix];
+  const n=set.size;
+  document.getElementById(prefix+'-fr-label').textContent=
+    n===0?'All FRs':n===1?[...set][0]:n+' FRs';
 }
-function renderRelFrOptions(){
-  const q=(document.getElementById('rel-fr-search').value||'').toLowerCase();
-  const frs=relFrAllOptions.filter(f=>f.toLowerCase().includes(q));
-  document.getElementById('rel-fr-options').innerHTML=frs.map(f=>
-    `<label class="msel-row"><input type="checkbox" value="${f}"${relFrFilter.has(f)?' checked':''} onchange="toggleRelFr(this)"> ${f}</label>`
+function renderFrOptions(prefix){
+  const q=(document.getElementById(prefix+'-fr-search').value||'').toLowerCase();
+  const set=frFilterSets[prefix];
+  const frs=frAllOptions.filter(f=>f.toLowerCase().includes(q));
+  document.getElementById(prefix+'-fr-options').innerHTML=frs.map(f=>
+    `<label class="msel-row"><input type="checkbox" value="${f}"${set.has(f)?' checked':''} onchange="toggleFr('${prefix}',this)"> ${f}</label>`
   ).join('')||'<div style="padding:8px;font-size:11px;color:var(--text3)">No match</div>';
 }
-function toggleRelFr(cb){
-  if(cb.checked) relFrFilter.add(cb.value); else relFrFilter.delete(cb.value);
-  updateRelFrLabel();
-  renderRelations();
+function toggleFr(prefix,cb){
+  const set=frFilterSets[prefix];
+  if(cb.checked) set.add(cb.value); else set.delete(cb.value);
+  updateFrLabel(prefix);
+  frOnChange[prefix]();
 }
-function relFrClear(){
-  relFrFilter.clear();
-  renderRelFrOptions();
-  updateRelFrLabel();
-  renderRelations();
+function frClear(prefix){
+  frFilterSets[prefix].clear();
+  renderFrOptions(prefix);
+  updateFrLabel(prefix);
+  frOnChange[prefix]();
 }
-function relFrAll(){
-  relFrAllOptions.forEach(f=>relFrFilter.add(f));
-  renderRelFrOptions();
-  updateRelFrLabel();
-  renderRelations();
+function frSelectAll(prefix){
+  frAllOptions.forEach(f=>frFilterSets[prefix].add(f));
+  renderFrOptions(prefix);
+  updateFrLabel(prefix);
+  frOnChange[prefix]();
 }
 
-function updateRelStatusLabel(){
-  const n=relStatusFilter.size;
-  document.getElementById('rel-status-label').textContent=
-    n===0?'All statuses':n===1?[...relStatusFilter][0]:n+' statuses';
+function updateStatusLabel(prefix){
+  const set=statusFilterSets[prefix];
+  const n=set.size;
+  document.getElementById(prefix+'-status-label').textContent=
+    n===0?'All statuses':n===1?[...set][0]:n+' statuses';
 }
-function toggleRelStatus(cb){
-  if(cb.checked) relStatusFilter.add(cb.value); else relStatusFilter.delete(cb.value);
-  updateRelStatusLabel();
-  renderRelations();
+function toggleStatus(prefix,cb){
+  const set=statusFilterSets[prefix];
+  if(cb.checked) set.add(cb.value); else set.delete(cb.value);
+  updateStatusLabel(prefix);
+  statusOnChange[prefix]();
 }
-function relStatusClear(){
-  relStatusFilter.clear();
-  document.querySelectorAll('#rel-status-menu input[type=checkbox]').forEach(cb=>cb.checked=false);
-  updateRelStatusLabel();
-  renderRelations();
+function statusClear(prefix){
+  statusFilterSets[prefix].clear();
+  document.querySelectorAll('#'+prefix+'-status-menu input[type=checkbox]').forEach(cb=>cb.checked=false);
+  updateStatusLabel(prefix);
+  statusOnChange[prefix]();
 }
-function relStatusAll(){
-  document.querySelectorAll('#rel-status-menu input[type=checkbox]').forEach(cb=>{cb.checked=true;relStatusFilter.add(cb.value);});
-  updateRelStatusLabel();
-  renderRelations();
+function statusSelectAll(prefix){
+  document.querySelectorAll('#'+prefix+'-status-menu input[type=checkbox]').forEach(cb=>{cb.checked=true;statusFilterSets[prefix].add(cb.value);});
+  updateStatusLabel(prefix);
+  statusOnChange[prefix]();
 }
+
+// ── Relationships tab (independent / intra-FR / inter-FR, all FRs) ──
 
 function renderRelations(){
   const typeF=document.getElementById('rel-type').value;
